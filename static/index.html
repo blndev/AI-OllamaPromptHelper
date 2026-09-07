@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Ollama Prompt Helper</title>
+  <link rel="stylesheet" href="/style.css?v=3">
+</head>
+<body>
+  <header class="app-header">
+    <h1>AI Ollama Prompt Helper</h1>
+    <p class="app-header__hint">Served by FastAPI · <a href="/api/health">/api/health</a></p>
+  </header>
+
+  <main class="app-layout">
+    <div class="app-main">
+      <details id="preset-editor" class="card" open>
+        <summary><h2 class="inline-summary">Presets</h2></summary>
+        <div class="row">
+          <label for="preset-select">Preset</label>
+          <select id="preset-select"></select>
+          <button id="preset-new" class="btn btn--secondary">New preset</button>
+        </div>
+
+        <form id="preset-form" class="form-grid">
+          <label>Name <input type="text" id="preset-name" required></label>
+          <label>System prompt <textarea id="preset-systemPrompt" required></textarea></label>
+          <label>Model <select id="preset-model"></select></label>
+          <label class="checkbox-label"><input type="checkbox" id="preset-thinking"> Thinking</label>
+          <small class="field-hint">Ask the model to show its reasoning separately from the final answer (only works if the selected model supports it).</small>
+          <label>Prompt identifier <input type="text" id="preset-promptIdentifier"></label>
+          <small class="field-hint">Optional marker. When set, the model is instructed to wrap generated prompt suggestions in markup so they can be extracted into the Markdown prompt library.</small>
+          <label>Temperature <input type="number" step="0.1" min="0" max="2" id="preset-temperature"></label>
+          <small class="field-hint">Randomness/creativity. Lower (e.g. 0.2) = focused and deterministic, higher (e.g. 1.5) = more varied. Range 0–2, default 0.8.</small>
+          <label>top_p <input type="number" step="0.05" min="0" max="1" id="preset-top_p"></label>
+          <small class="field-hint">Nucleus sampling: only the smallest set of tokens whose combined probability reaches this value are considered. Range 0–1, default 0.9. Lower = more focused.</small>
+          <label>num_ctx <input type="number" min="1" id="preset-num_ctx"></label>
+          <small class="field-hint">Context window size in tokens the model can consider (conversation history + prompt). Default 4096. Higher uses more memory.</small>
+          <p class="field-hint">Tip: to try different Temperature/top_p/num_ctx values for just the current chat, edit them above without clicking "Save preset" — the chat uses whatever is currently in these fields, and the saved preset stays unchanged until you do save.</p>
+          <div class="row">
+            <button type="submit" class="btn btn--primary">Save preset</button>
+            <button type="button" id="preset-delete" class="btn btn--danger">Delete preset</button>
+          </div>
+        </form>
+        <p id="preset-status" class="status-text"></p>
+      </details>
+
+      <section id="chat" class="card">
+        <h2>Chat</h2>
+        <div id="chat-controls" class="row">
+          <button type="button" id="chat-deselect-all" class="btn btn--secondary">Deselect all</button>
+          <button type="button" id="chat-new" class="btn btn--secondary">New chat</button>
+          <button type="button" id="chat-save" class="btn btn--secondary">Save history</button>
+          <select id="chat-history-select"></select>
+          <button type="button" id="chat-load" class="btn btn--secondary">Load</button>
+          <span id="chat-context-indicator" class="pill"></span>
+          <span id="chat-autosave-status" class="muted"></span>
+        </div>
+        <div id="prompt-workshop-controls" class="row">
+          <label for="topic-input">Topic</label>
+          <input type="text" id="topic-input" placeholder="e.g. fantasy landscapes">
+          <label for="prompt-type-select">Prompt type</label>
+          <select id="prompt-type-select">
+            <option value="image">image</option>
+            <option value="video">video</option>
+            <option value="text">text</option>
+          </select>
+        </div>
+        <div id="chat-history"></div>
+        <form id="chat-form" class="row chat-input-row">
+          <textarea id="chat-input" rows="3" placeholder="Type your message... (Enter to send, Shift+Enter for a new line)" required></textarea>
+          <input type="file" id="chat-image-input" accept="image/*">
+          <button type="submit" class="btn btn--primary">Send</button>
+        </form>
+        <p id="chat-status" class="status-text"></p>
+        <div id="chat-undo-toast" class="toast" style="display:none;">
+          Message deleted. <button type="button" id="chat-undo-button" class="btn btn--link">Undo</button>
+        </div>
+      </section>
+    </div>
+
+    <aside id="prompt-library-section" class="card">
+      <h2>Prompt Library</h2>
+      <div id="prompt-library"></div>
+    </aside>
+  </main>
+
+  <script src="/app.js?v=3"></script>
+</body>
+</html>

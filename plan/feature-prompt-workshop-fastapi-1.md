@@ -3,13 +3,13 @@ goal: FastAPI + Vanilla HTML/JS implementation of the Prompt Workshop
 version: 1.0
 date_created: 2026-09-07
 owner: AI-OllamaPromptHelper
-status: 'Planned'
+status: 'Completed'
 tags: [feature, architecture, fastapi, frontend]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 Implementation plan for the Prompt Workshop application: a FastAPI backend (REST + SSE streaming) serving a Vanilla HTML/CSS/JS frontend, integrating Ollama via LangChain, with JSON/Markdown file-based persistence. Based on [README.md](../README.md) "Detailed Requirements" and [analysis-tech-stack.md](../.local/decisions/analysis-tech-stack.md). The plan is split into milestones, each ending with a concrete, user-verifiable validation step so the direction can be confirmed before continuing.
 
@@ -42,10 +42,10 @@ Implementation plan for the Prompt Workshop application: a FastAPI backend (REST
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Scaffold project structure: `app/main.py`, `app/api/`, `app/services/`, `app/models/`, `static/`, `config.json` | | |
-| TASK-002 | Implement config loader (Pydantic model) reading `config.json` (`ollamaUrl`, `credentials`, `presetFolder`, `outputFolder`), with clear startup error if the file is missing/invalid | | |
-| TASK-003 | Mount `static/` via FastAPI `StaticFiles`, serve a minimal `index.html` at `/` | | |
-| TASK-004 | Add `/api/health` endpoint returning config summary (no secrets) for manual verification | | |
+| TASK-001 | Scaffold project structure: `app/main.py`, `app/api/`, `app/services/`, `app/models/`, `static/`, `config.json` | ✅ | 2026-09-07 |
+| TASK-002 | Implement config loader (Pydantic model) reading `config.json` (`ollamaUrl`, `credentials`, `presetFolder`, `outputFolder`), with clear startup error if the file is missing/invalid | ✅ | 2026-09-07 |
+| TASK-003 | Mount `static/` via FastAPI `StaticFiles`, serve a minimal `index.html` at `/` | ✅ | 2026-09-07 |
+| TASK-004 | Add `/api/health` endpoint returning config summary (no secrets) for manual verification | ✅ | 2026-09-07 |
 
 **Milestone 1 validation**: Run `uvicorn app.main:app --reload`, open the app in a browser, confirm the placeholder page loads and `/api/health` reflects the values from `config.json`.
 
@@ -55,9 +55,9 @@ Implementation plan for the Prompt Workshop application: a FastAPI backend (REST
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-005 | Implement `OllamaClient` service wrapping the Ollama HTTP API (list models, basic generate call), using `credentials` if configured | | |
-| TASK-006 | Add `/api/models` endpoint returning the auto-discovered model list | | |
-| TASK-007 | Add a minimal debug page/script that calls `/api/models` and prints the result | | |
+| TASK-005 | Implement `OllamaClient` service wrapping the Ollama HTTP API (list models, basic generate call), using `credentials` if configured | ✅ | 2026-09-07 |
+| TASK-006 | Add `/api/models` endpoint returning the auto-discovered model list | ✅ | 2026-09-07 |
+| TASK-007 | Add a minimal debug page/script that calls `/api/models` and prints the result | ✅ | 2026-09-07 |
 
 **Milestone 2 validation**: With a local Ollama instance running, calling `/api/models` returns the actually installed models; verified manually against `ollama list`.
 
@@ -67,10 +67,10 @@ Implementation plan for the Prompt Workshop application: a FastAPI backend (REST
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-008 | Define preset schema (Pydantic): `systemPrompt`, `model`, `thinking`, `promptIdentifier`, `temperature`, `top_p`, `num_ctx` | | |
-| TASK-009 | Implement `PresetRepository` (list/read/write/delete JSON files in `presetFolder`) | | |
-| TASK-010 | Add `/api/presets` (GET list, POST create), `/api/presets/{id}` (GET, PUT update, DELETE) | | |
-| TASK-011 | Build minimal frontend preset editor page: dropdown to select, form to edit/create, model dropdown fed by `/api/models` | | |
+| TASK-008 | Define preset schema (Pydantic): `systemPrompt`, `model`, `thinking`, `promptIdentifier`, `temperature`, `top_p`, `num_ctx` | ✅ | 2026-09-07 |
+| TASK-009 | Implement `PresetRepository` (list/read/write/delete JSON files in `presetFolder`) | ✅ | 2026-09-07 |
+| TASK-010 | Add `/api/presets` (GET list, POST create), `/api/presets/{id}` (GET, PUT update, DELETE) | ✅ | 2026-09-07 |
+| TASK-011 | Build minimal frontend preset editor page: dropdown to select, form to edit/create, model dropdown fed by `/api/models` | ✅ | 2026-09-07 |
 
 **Milestone 3 validation**: Create a preset via the UI, confirm a corresponding JSON file appears in `presetFolder` with correct content; edit and delete it via the UI and confirm the file updates/disappears accordingly.
 
@@ -80,9 +80,9 @@ Implementation plan for the Prompt Workshop application: a FastAPI backend (REST
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-012 | Integrate LangChain conversation chain/memory backed by `langchain-ollama`, parameterized by the active preset (`systemPrompt`, `model`, `temperature`, `top_p`, `num_ctx`) | | |
-| TASK-013 | Add `/api/chat` POST endpoint accepting message + preset id + active context messages, returning the full assistant response (non-streaming first) | | |
-| TASK-014 | Build chat UI: fixed bottom input, scrollable message list, send button, render user/assistant bubbles | | |
+| TASK-012 | Integrate LangChain conversation chain/memory backed by `langchain-ollama`, parameterized by the active preset (`systemPrompt`, `model`, `temperature`, `top_p`, `num_ctx`) | ✅ | 2026-09-07 |
+| TASK-013 | Add `/api/chat` POST endpoint accepting message + preset id + active context messages, returning the full assistant response (non-streaming first) | ✅ | 2026-09-07 |
+| TASK-014 | Build chat UI: fixed bottom input, scrollable message list, send button, render user/assistant bubbles | ✅ | 2026-09-07 |
 
 **Milestone 4 validation**: User can select a preset, type a message, and receive a coherent LLM response rendered in the chat UI, using the preset's configured model and system prompt.
 
@@ -92,12 +92,12 @@ Implementation plan for the Prompt Workshop application: a FastAPI backend (REST
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-015 | Convert `/api/chat` to a streaming SSE endpoint; update frontend to consume the stream via `EventSource`/`fetch` + `ReadableStream` | | |
-| TASK-016 | Add per-message checkbox (default checked) in the UI; only checked messages are included when building the next request's context | | |
-| TASK-017 | Add "Deselect all" control | | |
-| TASK-018 | Add per-message delete action with a timed "Undo" toast before permanent removal | | |
-| TASK-019 | Add "Regenerate" action on the last assistant message, resending the current context | | |
-| TASK-020 | Add context-size indicator (message count + approximate token estimate) updating live as checkboxes/messages change | | |
+| TASK-015 | Convert `/api/chat` to a streaming SSE endpoint; update frontend to consume the stream via `EventSource`/`fetch` + `ReadableStream` | ✅ | 2026-09-07 |
+| TASK-016 | Add per-message checkbox (default checked) in the UI; only checked messages are included when building the next request's context | ✅ | 2026-09-07 |
+| TASK-017 | Add "Deselect all" control | ✅ | 2026-09-07 |
+| TASK-018 | Add per-message delete action with a timed "Undo" toast before permanent removal | ✅ | 2026-09-07 |
+| TASK-019 | Add "Regenerate" action on the last assistant message, resending the current context | ✅ | 2026-09-07 |
+| TASK-020 | Add context-size indicator (message count + approximate token estimate) updating live as checkboxes/messages change | ✅ | 2026-09-07 |
 
 **Milestone 5 validation**: Responses visibly stream in; unchecking a message and sending a new one confirms (via logs/dev tools inspection of the outgoing request) that unchecked messages are excluded from the context sent to Ollama; delete+undo and regenerate work as expected in the UI.
 
@@ -107,10 +107,10 @@ Implementation plan for the Prompt Workshop application: a FastAPI backend (REST
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-021 | Add image attach control in the input bar; encode and send image alongside text to multimodal-capable models | | |
-| TASK-022 | Render an image thumbnail in the corresponding chat bubble | | |
-| TASK-023 | Implement thinking mode: request/parse the model's reasoning output when the active preset has `thinking=true`; render it in a visually distinct, collapsible section separate from the final response | | |
-| TASK-024 | Add a collapsible "Tuning" panel to override `temperature`/`top_p`/`num_ctx` for the current chat only, without persisting to the preset file | | |
+| TASK-021 | Add image attach control in the input bar; encode and send image alongside text to multimodal-capable models | ✅ | 2026-09-07 |
+| TASK-022 | Render an image thumbnail in the corresponding chat bubble | ✅ | 2026-09-07 |
+| TASK-023 | Implement thinking mode: request/parse the model's reasoning output when the active preset has `thinking=true`; render it in a visually distinct, collapsible section separate from the final response | ✅ | 2026-09-07 |
+| TASK-024 | Add a collapsible "Tuning" panel to override `temperature`/`top_p`/`num_ctx` for the current chat only, without persisting to the preset file | ✅ | 2026-09-07 |
 
 **Milestone 6 validation**: Sending an image with a multimodal model produces a relevant response; toggling thinking on a preset visibly separates reasoning from the final answer; changing tuning values in the panel measurably affects response behavior without altering the preset JSON file on disk.
 
@@ -120,12 +120,12 @@ Implementation plan for the Prompt Workshop application: a FastAPI backend (REST
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-025 | Add editable "Topic" field and "Prompt type" selector to the UI header/toolbar | | |
-| TASK-026 | Extend system prompt construction: when `promptIdentifier` is set on the active preset, instruct the model to wrap generated prompts in `<prompt type="...">...</prompt>` markup | | |
-| TASK-027 | Implement a parser that scans LLM responses for the prompt markup and extracts description/type/prompt text | | |
-| TASK-028 | Implement `MarkdownExporter` that appends extracted prompts to `outputFolder/<topic>.md` (creating the file/section if missing) with description, type, prompt text, and an empty Feedback placeholder | | |
-| TASK-029 | Render detected prompt blocks distinctly in the chat UI with a copy-to-clipboard button | | |
-| TASK-030 | Build the "Prompt Library" sidebar reading the current topic's Markdown file and rendering entries with a copy-to-clipboard button per entry | | |
+| TASK-025 | Add editable "Topic" field and "Prompt type" selector to the UI header/toolbar | ✅ | 2026-09-07 |
+| TASK-026 | Extend system prompt construction: when `promptIdentifier` is set on the active preset, instruct the model to wrap generated prompts in `<prompt type="...">...</prompt>` markup | ✅ | 2026-09-07 |
+| TASK-027 | Implement a parser that scans LLM responses for the prompt markup and extracts description/type/prompt text | ✅ | 2026-09-07 |
+| TASK-028 | Implement `MarkdownExporter` that appends extracted prompts to `outputFolder/<topic>.md` (creating the file/section if missing) with description, type, prompt text, and an empty Feedback placeholder | ✅ | 2026-09-07 |
+| TASK-029 | Render detected prompt blocks distinctly in the chat UI with a copy-to-clipboard button | ✅ | 2026-09-07 |
+| TASK-030 | Build the "Prompt Library" sidebar reading the current topic's Markdown file and rendering entries with a copy-to-clipboard button per entry | ✅ | 2026-09-07 |
 
 **Milestone 7 validation**: Sending a prompt-generation request with a preset that has `promptIdentifier` set results in a new entry appended to `outputFolder/<topic>.md` with the correct structure; clicking copy on the entry places the exact prompt text on the clipboard; changing the Topic field routes subsequent extractions to a different Markdown file.
 
@@ -135,9 +135,9 @@ Implementation plan for the Prompt Workshop application: a FastAPI backend (REST
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-031 | Define chat history JSON schema (messages with role, content, image ref, checkbox state, timestamps) | | |
-| TASK-032 | Add `/api/chat-history` save/load endpoints and UI controls ("Save history", "Load history", "New chat") | | |
-| TASK-033 | Implement autosave (periodic timer and/or on-new-message) writing to a dedicated autosave file, with a small "Autosaved Xs ago" UI indicator | | |
+| TASK-031 | Define chat history JSON schema (messages with role, content, image ref, checkbox state, timestamps) | ✅ | 2026-09-07 |
+| TASK-032 | Add `/api/chat-history` save/load endpoints and UI controls ("Save history", "Load history", "New chat") | ✅ | 2026-09-07 |
+| TASK-033 | Implement autosave (periodic timer and/or on-new-message) writing to a dedicated autosave file, with a small "Autosaved Xs ago" UI indicator | ✅ | 2026-09-07 |
 
 **Milestone 8 validation**: Save a chat, reload the app, load it back, and confirm messages plus checkbox states are restored exactly; kill and restart the server mid-chat and confirm the autosave file allows recovering the conversation.
 
@@ -147,9 +147,9 @@ Implementation plan for the Prompt Workshop application: a FastAPI backend (REST
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-034 | Walk through README "Detailed Requirements" sections 1–10 and cross-check each bullet against the running app | | |
-| TASK-035 | Fix gaps found during the walkthrough | | |
-| TASK-036 | Basic error handling pass: missing/invalid config, unreachable Ollama instance, invalid preset JSON, filesystem write failures | | |
+| TASK-034 | Walk through README "Detailed Requirements" sections 1–10 and cross-check each bullet against the running app | ✅ | 2026-09-07 |
+| TASK-035 | Fix gaps found during the walkthrough | ✅ | 2026-09-07 |
+| TASK-036 | Basic error handling pass: missing/invalid config, unreachable Ollama instance, invalid preset JSON, filesystem write failures | ✅ | 2026-09-07 |
 
 **Milestone 9 validation**: Full manual run-through of a realistic session (pick preset → chat with tuning override → attach image → toggle thinking → extract a prompt → copy it → edit checkboxes → delete+undo a message → regenerate → change topic → save/load chat → restart and confirm autosave) completes without errors.
 
@@ -184,6 +184,10 @@ Implementation plan for the Prompt Workshop application: a FastAPI backend (REST
 - **TEST-003**: Unit tests for `MarkdownExporter` (new topic file creation, appending to an existing file, correct section structure).
 - **TEST-004**: Integration test for `/api/chat` context-building logic (only checked messages are included in the outgoing context).
 - **TEST-005**: Manual/exploratory test per milestone validation step described above (Phases 1–9).
+
+## Known Gaps
+
+- Filesystem write failures (e.g. `outputFolder`/`presetFolder` unwritable due to permissions) are not explicitly caught around individual `write_text()` calls in `preset_repository.py`, `chat_history_repository.py`, and `markdown_exporter.py`; such a failure surfaces as an unhandled 500 rather than a clean error message. Accepted as a low-priority risk for this local single-user tool (see RISK section below); not fixed in Phase 9 per the deliberate scope decision to avoid over-engineering an unlikely edge case.
 
 ## 7. Risks & Assumptions
 

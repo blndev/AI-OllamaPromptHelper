@@ -1,5 +1,7 @@
 # Project specific
 .local/*
+output/
+presets/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
