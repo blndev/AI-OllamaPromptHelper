@@ -55,9 +55,11 @@ A JSON configuration file provides:
 
 ## 4. Presets
 * Presets are loaded from JSON files in the configured preset folder.
-* Each preset defines: `systemPrompt`, `model`, `thinking` (bool), `promptIdentifier`.
+* Each preset defines: `systemPrompt`, `model`, `thinking` (bool), `promptIdentifier`, and LLM tuning parameters `temperature`, `top_p`, `num_ctx` (all optional, falling back to Ollama's defaults when not set).
 * Presets are fully manageable from the UI: the user can select/switch presets via dropdown, edit existing presets, and create new presets.
 * Any change made in the UI (edit or create) is persisted back to the preset JSON file(s), not just kept for the current session.
+* The `model` field in the preset editor is filled from a dropdown of models auto-discovered from the Ollama instance (e.g. via its model-list endpoint) instead of free text entry, to avoid typos/invalid model names.
+* The tuning parameters (`temperature`, `top_p`, `num_ctx`) can additionally be overridden temporarily within an ongoing chat (e.g. via a collapsible "tuning" panel), without modifying the underlying preset file — the preset always remains the source of the default values.
 
 ## 5. Topic Field
 * The "Topic" is a free text field that can be changed at any point during an ongoing chat (not fixed once at session start).
@@ -67,13 +69,16 @@ A JSON configuration file provides:
 * Fixed input field at the bottom of the UI for user messages.
 * Multimodal input: the user can attach an image alongside a text message for models that support image input.
 * Chat messages (user and LLM) are displayed in a scrollable chat history view.
+* A "Regenerate" action on the last assistant message resends the same context to the model to produce an alternative response, without requiring the user to retype their last message.
 
 ## 7. Chat Context Control (Checkboxes)
 * Every message (user or LLM) has a checkbox, checked by default.
 * The checkbox state controls whether that message is included as context sent to the LLM on the next request — this is a functional context control, not merely a display/export filter.
 * "Deselect all" action unchecks every message at once.
-* Individual messages can be deleted regardless of sender (user or LLM).
+* Individual messages can be deleted regardless of sender (user or LLM). Deleting a message shows a brief "Undo" option (e.g. toast notification) to restore it before it is permanently removed.
 * The full chat (including message content and checkbox/inclusion state) can be saved to and loaded from a JSON file.
+* The current chat is additionally autosaved periodically (and/or on every new message) to a dedicated autosave file, independent of the manual save/load action, to prevent data loss on crash or reload.
+* The UI shows an indicator of the current context size (e.g. number of included messages and an approximate token estimate) so the user can see when the context sent to the LLM grows large.
 
 ## 8. Thinking Mode
 * "Thinking" is a per-preset setting (on/off) reflecting whether the selected model's reasoning/thinking output is requested and shown.
@@ -92,3 +97,4 @@ A JSON configuration file provides:
 ## 10. Assumptions
 > **Assumption:** No specific persistence beyond flat JSON files (presets, config, chat history exports, Markdown output) is required — no database.
 > **Assumption:** No non-functional requirements (performance, scalability, security hardening) beyond basic local single-user usage are in scope, consistent with the "vibe coded" nature of the project.
+> **Assumption:** The token estimate for the context-size indicator (point 7) is an approximation, since exact tokenization depends on the model in use and is not necessarily available client-side.
