@@ -163,6 +163,28 @@ textarea {
   align-items: flex-end;
 }
 
+#debug-panel {
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem;
+}
+
+#debug-panel summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.debug-panel-body {
+  background: #0f172a;
+  color: #93c5fd;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.78rem;
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .btn {
   border: 1px solid transparent;
   border-radius: 6px;

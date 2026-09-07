@@ -35,7 +35,7 @@
           <small class="field-hint">Nucleus sampling: only the smallest set of tokens whose combined probability reaches this value are considered. Range 0–1, default 0.9. Lower = more focused.</small>
           <label>num_ctx <input type="number" min="1" id="preset-num_ctx"></label>
           <small class="field-hint">Context window size in tokens the model can consider (conversation history + prompt). Default 4096. Higher uses more memory.</small>
-          <p class="field-hint">Tip: to try different Temperature/top_p/num_ctx values for just the current chat, edit them above without clicking "Save preset" — the chat uses whatever is currently in these fields, and the saved preset stays unchanged until you do save.</p>
+          <p class="field-hint">Tip: to try a different System prompt, Temperature, top_p or num_ctx for just the current chat, edit them above without clicking "Save preset" — the chat uses whatever is currently in these fields, and the saved preset stays unchanged until you do save.</p>
           <div class="row">
             <button type="submit" class="btn btn--primary">Save preset</button>
             <button type="button" id="preset-delete" class="btn btn--danger">Delete preset</button>
@@ -65,6 +65,10 @@
             <option value="text">text</option>
           </select>
         </div>
+        <details id="debug-panel" style="display:none;">
+          <summary>🔍 Request sent to Ollama (last message)</summary>
+          <pre id="debug-panel-body" class="debug-panel-body">No request sent yet.</pre>
+        </details>
         <div id="chat-history"></div>
         <form id="chat-form" class="row chat-input-row">
           <textarea id="chat-input" rows="3" placeholder="Type your message... (Enter to send, Shift+Enter for a new line)" required></textarea>

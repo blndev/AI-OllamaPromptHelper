@@ -15,4 +15,5 @@ def health() -> dict:
         "credentialsConfigured": bool(config.credentials),
         "presetFolder": config.presetFolder,
         "outputFolder": config.outputFolder,
+        "debugMode": config.debugMode,
     }

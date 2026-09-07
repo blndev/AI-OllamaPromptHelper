@@ -1,5 +1,6 @@
 """Chat endpoints: a non-streaming turn and an SSE streaming turn (Phase 4/5/6)."""
 import json
+import logging
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -15,14 +16,16 @@ from app.services.chat_service import (
 )
 from app.services.preset_repository import PresetNotFoundError, PresetRepository
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
 class ChatRequest(BaseModel):
     presetId: str
     messages: list[ChatMessageIn]
-    # Per-chat tuning overrides; when set they win over the preset's stored
-    # defaults for this request only and are never written back to the preset.
+    # Per-chat overrides; when set they win over the preset's stored defaults
+    # for this request only and are never written back to the preset file.
+    systemPrompt: str | None = None
     temperature: float | None = None
     top_p: float | None = None
     num_ctx: int | None = None
@@ -43,10 +46,13 @@ def _load_preset(preset_id: str):
 
 
 def apply_overrides(preset: Preset, request: ChatRequest) -> Preset:
-    """Return a copy of preset with temperature/top_p/num_ctx replaced by any
-    request overrides, leaving fields the request left as None unchanged.
-    Never persisted: this only returns an in-memory copy."""
+    """Return a copy of preset with systemPrompt/temperature/top_p/num_ctx
+    replaced by any request overrides, leaving fields the request left as
+    None (or blank for systemPrompt) unchanged. Never persisted: this only
+    returns an in-memory copy."""
     overrides = {}
+    if request.systemPrompt is not None and request.systemPrompt.strip():
+        overrides["systemPrompt"] = request.systemPrompt
     if request.temperature is not None:
         overrides["temperature"] = request.temperature
     if request.top_p is not None:
@@ -73,9 +79,22 @@ async def chat(request: ChatRequest) -> ChatResponse:
     effective_preset = apply_overrides(preset, request)
     _require_model(effective_preset)
 
+    logger.info(
+        "Chat request: preset=%s model=%s temperature=%s top_p=%s num_ctx=%s "
+        "thinking=%s messages=%d",
+        effective_preset.name,
+        effective_preset.model,
+        effective_preset.temperature,
+        effective_preset.top_p,
+        effective_preset.num_ctx,
+        effective_preset.thinking,
+        len(request.messages),
+    )
+
     try:
         reply = await generate_reply(config, effective_preset, request.messages)
     except Exception as exc:  # network/model errors from the Ollama backend
+        logger.error("LLM request failed for preset %s: %s", effective_preset.name, exc)
         raise HTTPException(
             status_code=502, detail=f"LLM request failed: {exc}"
         ) from exc
@@ -93,6 +112,37 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
         try:
             model = build_chat_model(config, effective_preset)
             messages = build_messages(effective_preset, request.messages)
+            logger.info(
+                "Sending to Ollama: preset=%s model=%s temperature=%s top_p=%s "
+                "num_ctx=%s thinking=%s messages=%d",
+                effective_preset.name,
+                effective_preset.model,
+                effective_preset.temperature,
+                effective_preset.top_p,
+                effective_preset.num_ctx,
+                effective_preset.thinking,
+                len(messages),
+            )
+
+            if config.debugMode:
+                # Exactly what will be sent to Ollama's HTTP API (role/content/
+                # images), via the same conversion LangChain performs internally.
+                # Only computed/emitted/logged when debugMode is enabled, since
+                # it includes the full system prompt and message content.
+                wire_messages = model._convert_messages_to_ollama_messages(messages)
+                logger.info("Debug mode - full Ollama payload: %s", wire_messages)
+                debug_payload = json.dumps(
+                    {
+                        "model": effective_preset.model,
+                        "temperature": effective_preset.temperature,
+                        "top_p": effective_preset.top_p,
+                        "num_ctx": effective_preset.num_ctx,
+                        "thinking": effective_preset.thinking,
+                        "messages": wire_messages,
+                    }
+                )
+                yield f"event: debug\ndata: {debug_payload}\n\n"
+
             async for chunk in model.astream(messages):
                 # Reasoning text (when preset.thinking is True) arrives via
                 # additional_kwargs["reasoning_content"]; emit it as its own SSE
@@ -105,6 +155,7 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
                     yield f"data: {json.dumps({'delta': text})}\n\n"
             yield "event: done\ndata: {}\n\n"
         except Exception as exc:  # pragma: no cover - defensive, surfaced to client
+            logger.error("LLM streaming request failed for preset %s: %s", effective_preset.name, exc)
             payload = json.dumps({"detail": f"LLM request failed: {exc}"})
             yield f"event: error\ndata: {payload}\n\n"
 

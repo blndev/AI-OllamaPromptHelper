@@ -3,6 +3,7 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_ollama import ChatOllama
 
 from app.config import AppConfig
 from app.models.preset import Preset
@@ -51,6 +52,23 @@ class TestBuildMessages:
         assert len(messages) == 1
         assert isinstance(messages[0], SystemMessage)
         assert messages[0].content == "Be concise."
+
+    def test_system_prompt_survives_real_ollama_wire_conversion(self):
+        """End-to-end (no network): our SystemMessage is converted by the real,
+        unmocked ChatOllama into the exact {"role": "system", ...} dict that
+        gets sent over the wire to Ollama, proving the system prompt is not
+        silently dropped somewhere in the langchain_ollama conversion layer."""
+        preset = _make_preset(systemPrompt="You are a pirate. Always answer in pirate speak.")
+        history = [ChatMessageIn(role="user", content="Hello there")]
+
+        messages = build_messages(preset, history)
+        model = ChatOllama(model="llama3")
+        ollama_messages = model._convert_messages_to_ollama_messages(messages)
+
+        assert ollama_messages[0]["role"] == "system"
+        assert ollama_messages[0]["content"] == preset.systemPrompt
+        assert ollama_messages[1]["role"] == "user"
+        assert ollama_messages[1]["content"] == "Hello there"
 
     def test_maps_history_roles_and_preserves_order(self):
         """user/assistant history entries map to Human/AIMessage in the original order."""

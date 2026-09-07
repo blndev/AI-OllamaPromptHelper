@@ -85,7 +85,7 @@ class TestChatEndpoint:
         assert response.json() == {"content": "42", "thinking": "Let me think..."}
 
     def test_tuning_overrides_do_not_persist_to_preset_file(self, isolated_chat_config: Path):
-        """Temperature/top_p/num_ctx overrides in the request never trigger a preset write."""
+        """systemPrompt/temperature/top_p/num_ctx overrides never trigger a preset write."""
         with patch(
             "app.api.chat.PresetRepository.get", return_value=_make_preset()
         ), patch(
@@ -102,6 +102,7 @@ class TestChatEndpoint:
                 json={
                     "presetId": "preset-1",
                     "messages": [{"role": "user", "content": "Hello"}],
+                    "systemPrompt": "You are a pirate. Unsaved edit.",
                     "temperature": 0.1,
                     "top_p": 0.5,
                     "num_ctx": 2048,
@@ -112,6 +113,7 @@ class TestChatEndpoint:
         mock_update.assert_not_called()
         mock_create.assert_not_called()
         effective_preset = mock_generate_reply.call_args.args[1]
+        assert effective_preset.systemPrompt == "You are a pirate. Unsaved edit."
         assert effective_preset.temperature == 0.1
         assert effective_preset.top_p == 0.5
         assert effective_preset.num_ctx == 2048
@@ -207,3 +209,27 @@ class TestApplyOverrides:
         assert effective.top_p == 0.8
         assert effective.num_ctx == 1024
         assert effective.id == preset.id
+
+    def test_system_prompt_override_replaces_preset_system_prompt(self):
+        """An unsaved systemPrompt from the request takes effect for this chat."""
+        from app.api.chat import ChatRequest, apply_overrides
+
+        preset = _make_preset()
+        request = ChatRequest(
+            presetId="preset-1", messages=[], systemPrompt="You are a pirate."
+        )
+
+        effective = apply_overrides(preset, request)
+
+        assert effective.systemPrompt == "You are a pirate."
+
+    def test_blank_system_prompt_override_is_ignored(self):
+        """A blank/whitespace-only systemPrompt override does not blank out the preset."""
+        from app.api.chat import ChatRequest, apply_overrides
+
+        preset = _make_preset()
+        request = ChatRequest(presetId="preset-1", messages=[], systemPrompt="   ")
+
+        effective = apply_overrides(preset, request)
+
+        assert effective.systemPrompt == preset.systemPrompt

@@ -2,5 +2,6 @@
   "ollamaUrl": "http://localhost:11434",
   "credentials": null,
   "presetFolder": "./presets",
-  "outputFolder": "./output"
+  "outputFolder": "./output",
+  "debugMode": true
 }

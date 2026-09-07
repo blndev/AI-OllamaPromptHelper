@@ -14,12 +14,13 @@ from app.services.preset_repository import PresetNotFoundError
 client = TestClient(app)
 
 
-def _fake_load_config(tmp_path: Path) -> AppConfig:
+def _fake_load_config(tmp_path: Path, debug_mode: bool = False) -> AppConfig:
     return AppConfig(
         ollamaUrl="http://localhost:11434",
         credentials=None,
         presetFolder=str(tmp_path / "presets"),
         outputFolder=str(tmp_path / "output"),
+        debugMode=debug_mode,
     )
 
 
@@ -60,6 +61,10 @@ def _make_fake_model(chunks, error: Exception | None = None):
 
     model = SimpleNamespace()
     model.astream = fake_astream
+    model._convert_messages_to_ollama_messages = lambda messages: [
+        {"role": "system" if m.type == "system" else "user", "content": m.content}
+        for m in messages
+    ]
     return model
 
 
@@ -87,6 +92,54 @@ class TestChatStreamEndpoint:
         assert 'data: {"delta": "Hello"}' in body
         assert 'data: {"delta": " world"}' in body
         assert body.rstrip().endswith("event: done\ndata: {}")
+
+    def test_stream_emits_debug_event_with_exact_ollama_payload(self, isolated_chat_config: Path):
+        """With debugMode enabled, an event: debug line contains the exact
+        role/content payload sent to Ollama, so it's visible without a debugger."""
+        fake_model = _make_fake_model(["Hi there"])
+        with patch(
+            "app.api.chat.load_config",
+            return_value=_fake_load_config(isolated_chat_config, debug_mode=True),
+        ), patch(
+            "app.api.chat.PresetRepository.get", return_value=_make_preset()
+        ), patch(
+            "app.api.chat.build_chat_model", return_value=fake_model
+        ):
+            response = client.post(
+                "/api/chat/stream",
+                json={
+                    "presetId": "preset-1",
+                    "messages": [{"role": "user", "content": "Hi"}],
+                },
+            )
+
+        assert response.status_code == 200
+        body = response.text
+        debug_index = body.index("event: debug")
+        delta_index = body.index('data: {"delta"')
+        assert debug_index < delta_index
+        assert '"model": "llama3"' in body
+        assert '"role": "system"' in body
+        assert '"content": "You are a helpful assistant."' in body
+
+    def test_stream_omits_debug_event_by_default(self, isolated_chat_config: Path):
+        """Without debugMode enabled, no event: debug line is emitted at all."""
+        fake_model = _make_fake_model(["Hi there"])
+        with patch(
+            "app.api.chat.PresetRepository.get", return_value=_make_preset()
+        ), patch(
+            "app.api.chat.build_chat_model", return_value=fake_model
+        ):
+            response = client.post(
+                "/api/chat/stream",
+                json={
+                    "presetId": "preset-1",
+                    "messages": [{"role": "user", "content": "Hi"}],
+                },
+            )
+
+        assert response.status_code == 200
+        assert "event: debug" not in response.text
 
     def test_unknown_preset_id_returns_404_without_streaming(self, isolated_chat_config: Path):
         """A presetId that does not exist returns a normal JSON 404, not an SSE stream."""

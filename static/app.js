@@ -131,10 +131,26 @@ document.getElementById("preset-delete").addEventListener("click", async () => {
   await loadPresets();
 });
 
+async function applyServerFeatureFlags() {
+  // The debug panel is opt-in via config.json ("debugMode": true) so system
+  // prompts/message content are never exposed unless explicitly enabled.
+  try {
+    const response = await fetch("/api/health");
+    const data = await response.json();
+    const debugPanel = document.getElementById("debug-panel");
+    if (data.debugMode) {
+      debugPanel.style.display = "";
+    }
+  } catch (err) {
+    // Non-fatal: debug panel just stays hidden if this check fails.
+    console.warn("Could not read server feature flags", err);
+  }
+}
+
 (async function init() {
   // Run in parallel: an unreachable Ollama instance can take several
   // seconds to time out, and must not block the preset list from loading.
-  await Promise.all([loadModels(), loadPresets()]);
+  await Promise.all([loadModels(), loadPresets(), applyServerFeatureFlags()]);
 })();
 
 // --- Chat (Phase 5/6: streaming, checkboxes, undo, regenerate, images, thinking, tuning) ---
@@ -198,10 +214,19 @@ function tuningOverrides() {
   // Overrides come straight from the (possibly unsaved) preset form fields,
   // so editing them without clicking "Save preset" only affects this chat.
   return {
+    systemPrompt: fieldEl("systemPrompt").value || null,
     temperature: fieldEl("temperature").value ? Number(fieldEl("temperature").value) : null,
     top_p: fieldEl("top_p").value ? Number(fieldEl("top_p").value) : null,
     num_ctx: fieldEl("num_ctx").value ? Number(fieldEl("num_ctx").value) : null,
   };
+}
+
+const debugPanel = document.getElementById("debug-panel");
+const debugPanelBody = document.getElementById("debug-panel-body");
+
+function showLastRequestDebug(payload) {
+  debugPanelBody.textContent = JSON.stringify(payload, null, 2);
+  debugPanel.open = true;
 }
 
 function renderChat() {
@@ -363,7 +388,12 @@ async function streamAssistantReply(historyForContext) {
       }
       const eventType = eventLine ? eventLine.slice("event: ".length) : "message";
       const payload = JSON.parse(dataLine.slice("data: ".length));
-      if (eventType === "thinking" && payload.delta) {
+      if (eventType === "debug") {
+        // Exact payload the backend sends to Ollama's API (role/content/images),
+        // shown in the "Request sent to Ollama" panel so it's visible without
+        // a debugger or the browser network tab.
+        showLastRequestDebug(payload);
+      } else if (eventType === "thinking" && payload.delta) {
         assistantMessage.thinking += payload.delta;
         renderChat();
       } else if (payload.delta) {
