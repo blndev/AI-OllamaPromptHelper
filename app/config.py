@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-from functools import lru_cache
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -32,8 +31,10 @@ def _local_override_path(path: Path) -> Path:
     return path.with_name(f"{path.stem}.local{path.suffix}")
 
 
-@lru_cache
 def load_config(path: Path = DEFAULT_CONFIG_PATH) -> AppConfig:
+    # Intentionally not cached: config.json / config.local.json are re-read on
+    # every call, so editing config.local.json takes effect on the very next
+    # request without restarting the server.
     if not path.exists():
         raise ConfigError(f"Configuration file not found: {path.resolve()}")
 

@@ -24,7 +24,6 @@ class TestLoadConfig:
             ),
             encoding="utf-8",
         )
-        load_config.cache_clear()
 
         config = load_config(config_path)
 
@@ -38,7 +37,6 @@ class TestLoadConfig:
     def test_load_config_missing_file_raises_config_error(self, tmp_path: Path):
         """A missing config file raises ConfigError."""
         missing_path = tmp_path / "does_not_exist.json"
-        load_config.cache_clear()
 
         with pytest.raises(ConfigError):
             load_config(missing_path)
@@ -47,7 +45,6 @@ class TestLoadConfig:
         """Malformed JSON content raises ConfigError."""
         config_path = tmp_path / "config.json"
         config_path.write_text("{not valid json", encoding="utf-8")
-        load_config.cache_clear()
 
         with pytest.raises(ConfigError):
             load_config(config_path)
@@ -65,7 +62,6 @@ class TestLoadConfig:
             ),
             encoding="utf-8",
         )
-        load_config.cache_clear()
 
         with pytest.raises(ConfigError):
             load_config(config_path)
@@ -93,7 +89,6 @@ class TestLoadConfigLocalOverride:
             json.dumps({"ollamaUrl": "http://my-dev-box:11434", "debugMode": True}),
             encoding="utf-8",
         )
-        load_config.cache_clear()
 
         config = load_config(config_path)
 
@@ -115,7 +110,6 @@ class TestLoadConfigLocalOverride:
             ),
             encoding="utf-8",
         )
-        load_config.cache_clear()
 
         config = load_config(config_path)
 
@@ -136,7 +130,6 @@ class TestLoadConfigLocalOverride:
             encoding="utf-8",
         )
         (tmp_path / "config.local.json").write_text("{not valid json", encoding="utf-8")
-        load_config.cache_clear()
 
         with pytest.raises(ConfigError):
             load_config(config_path)
