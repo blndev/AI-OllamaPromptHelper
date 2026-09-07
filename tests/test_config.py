@@ -69,3 +69,74 @@ class TestLoadConfig:
 
         with pytest.raises(ConfigError):
             load_config(config_path)
+
+
+class TestLoadConfigLocalOverride:
+    """Tests for the config.local.json dev-only override (see .gitignore)."""
+
+    def test_local_override_replaces_only_the_fields_it_sets(self, tmp_path: Path):
+        """config.local.json overrides individual fields, others come from config.json."""
+        config_path = tmp_path / "config.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "ollamaUrl": "http://localhost:11434",
+                    "credentials": None,
+                    "presetFolder": str(tmp_path / "presets"),
+                    "outputFolder": str(tmp_path / "output"),
+                    "debugMode": False,
+                }
+            ),
+            encoding="utf-8",
+        )
+        (tmp_path / "config.local.json").write_text(
+            json.dumps({"ollamaUrl": "http://my-dev-box:11434", "debugMode": True}),
+            encoding="utf-8",
+        )
+        load_config.cache_clear()
+
+        config = load_config(config_path)
+
+        assert config.ollamaUrl == "http://my-dev-box:11434"
+        assert config.debugMode is True
+        assert config.presetFolder == str(tmp_path / "presets")
+
+    def test_missing_local_override_is_not_an_error(self, tmp_path: Path):
+        """Without a config.local.json file, config.json alone is used as before."""
+        config_path = tmp_path / "config.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "ollamaUrl": "http://localhost:11434",
+                    "credentials": None,
+                    "presetFolder": str(tmp_path / "presets"),
+                    "outputFolder": str(tmp_path / "output"),
+                }
+            ),
+            encoding="utf-8",
+        )
+        load_config.cache_clear()
+
+        config = load_config(config_path)
+
+        assert config.ollamaUrl == "http://localhost:11434"
+
+    def test_malformed_local_override_raises_config_error(self, tmp_path: Path):
+        """A broken config.local.json fails loudly instead of being silently ignored."""
+        config_path = tmp_path / "config.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "ollamaUrl": "http://localhost:11434",
+                    "credentials": None,
+                    "presetFolder": str(tmp_path / "presets"),
+                    "outputFolder": str(tmp_path / "output"),
+                }
+            ),
+            encoding="utf-8",
+        )
+        (tmp_path / "config.local.json").write_text("{not valid json", encoding="utf-8")
+        load_config.cache_clear()
+
+        with pytest.raises(ConfigError):
+            load_config(config_path)

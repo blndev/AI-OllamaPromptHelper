@@ -27,6 +27,11 @@ class ConfigError(RuntimeError):
 DEFAULT_CONFIG_PATH = Path("config.json")
 
 
+def _local_override_path(path: Path) -> Path:
+    """e.g. config.json -> config.local.json (dev-only, git-ignored override)."""
+    return path.with_name(f"{path.stem}.local{path.suffix}")
+
+
 @lru_cache
 def load_config(path: Path = DEFAULT_CONFIG_PATH) -> AppConfig:
     if not path.exists():
@@ -38,6 +43,16 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> AppConfig:
         raise ConfigError(
             f"Configuration file is not valid JSON: {path.resolve()} ({exc})"
         ) from exc
+
+    local_path = _local_override_path(path)
+    if local_path.exists():
+        try:
+            local_raw = json.loads(local_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ConfigError(
+                f"Local config override is not valid JSON: {local_path.resolve()} ({exc})"
+            ) from exc
+        raw = {**raw, **local_raw}
 
     try:
         config = AppConfig(**raw)

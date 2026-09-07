@@ -3,6 +3,43 @@ Simple Web based UI which uses Ollama to support in Prompt generation
 
 Vibe Coded 
 
+## Getting Started
+
+### Prerequisites
+* Python 3.12+ (a virtual environment is recommended)
+* [Ollama](https://ollama.com) installed and running locally (or reachable over the network), with at least one model pulled (e.g. `ollama pull llama3`)
+
+### Download & Install
+```powershell
+git clone <this-repository-url>
+cd AI-OllamaPromptHelper
+
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
+```
+
+### Configure
+The app is configured via [`config.json`](config.json) in the project root:
+
+| Field | Required | Default | Description |
+|---|---|---|---|
+| `ollamaUrl` | yes | – | Base URL of the Ollama instance, e.g. `http://localhost:11434` |
+| `credentials` | no | `null` | Bearer token, only needed for a remote/secured Ollama instance |
+| `presetFolder` | yes | – | Folder where preset JSON files are stored, e.g. `./presets` |
+| `outputFolder` | yes | – | Folder for chat history exports and extracted prompt Markdown files, e.g. `./output` |
+| `debugMode` | no | `false` | When `true`, shows a "Request sent to Ollama" panel with the exact payload sent (see [Detailed Requirements § 3](#3-configuration-file)) |
+
+For local development, you can create a **`config.local.json`** next to `config.json` to override individual fields (e.g. `{"debugMode": true}`) without touching the committed file — it's git-ignored and only used on your machine.
+
+### Run
+```powershell
+.\.venv\Scripts\Activate.ps1
+uvicorn app.main:app --reload
+```
+Then open **http://127.0.0.1:8000/** in your browser.
+
 # Requirements
 * easy to use
 * can simply be used in browser
@@ -53,6 +90,7 @@ A JSON configuration file provides:
 * `presetFolder` – folder path where preset JSON files are loaded from.
 * `outputFolder` – a single folder path used for all generated output (chat history exports and extracted prompt Markdown files). No per-topic subfolder structure is required by default.
 * `debugMode` – optional, defaults to `false`. When `true`, the backend exposes the exact request payload sent to Ollama (system prompt, full message list, model/tuning parameters) via an SSE debug event, and the UI shows a "Request sent to Ollama" panel. Off by default so message content is never exposed unless explicitly enabled.
+* `config.local.json` – optional, dev-only, git-ignored local override placed next to `config.json` in the same folder. Any field present in it (e.g. just `{"debugMode": true}`) overrides the corresponding field from `config.json`; fields not present fall back to `config.json`. Intended for local developer machine settings that must never be committed.
 
 ## 4. Presets
 * Presets are loaded from JSON files in the configured preset folder.
