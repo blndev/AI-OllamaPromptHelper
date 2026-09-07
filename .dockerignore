@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[codz]
+.git/
+.gitignore
+.pytest_cache/
+.coverage
+tests/
+plan/
+.local/
+presets/
+output/
+config.local.json
+.vscode/
+*.md

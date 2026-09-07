@@ -40,6 +40,70 @@ uvicorn app.main:app --reload
 ```
 Then open **http://127.0.0.1:8000/** in your browser.
 
+## Docker / Podman
+
+A [`Dockerfile`](Dockerfile) is provided. It always forces `debugMode` to `false` in the image, regardless of the committed `config.json` value — enable debug mode for a container only via a mounted `config.local.json` (see below).
+
+`presetFolder` (`./presets`) and `outputFolder` (`./output`) resolve inside the container's `/app` working directory, so mount them as volumes to persist presets and chat/prompt output across container restarts and rebuilds.
+
+Since `localhost` inside a container refers to the container itself, not your host machine, point `ollamaUrl` at your host's Ollama instance via a mounted `config.local.json` instead of editing the image's `config.json`.
+
+### Pull the pre-built image from GitHub (GHCR)
+Every push to `main` (and tags/PRs, see below) is built by [`.github/workflows/docker-build.yml`](.github/workflows/docker-build.yml) and published to the GitHub Container Registry — no local build required:
+```powershell
+docker pull ghcr.io/<owner>/<repo>:main
+# or a specific version tag, e.g.
+docker pull ghcr.io/<owner>/<repo>:v1.0.0
+```
+Replace `<owner>/<repo>` with this repository's path in **lowercase** (GHCR requires lowercase image names). Available tags mirror the branch/tag pushed (`main`, `v*` semver tags) plus a `sha-<commit>` tag for every build — see the "Packages" section of the GitHub repository page for the full list.
+
+If the package is private, authenticate first: `docker login ghcr.io -u <your-github-username>` using a [personal access token](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) with `read:packages` scope (public packages need no login to pull). Then run it exactly as described under "Run the container" below, just replacing `ai-ollama-prompt-helper` with the pulled `ghcr.io/...` image name/tag.
+
+### Build the image
+```powershell
+docker build -t ai-ollama-prompt-helper .
+# or
+podman build -t ai-ollama-prompt-helper .
+```
+
+### Create the volumes / override file
+```powershell
+mkdir presets, output -ErrorAction SilentlyContinue
+@'
+{ "ollamaUrl": "http://host.docker.internal:11434" }
+'@ | Set-Content config.local.json
+```
+
+### Run the container
+
+**Docker (Windows/macOS/Linux):**
+```powershell
+docker run -d --name ai-ollama-prompt-helper `
+  -p 8000:8000 `
+  -v ${PWD}/presets:/app/presets `
+  -v ${PWD}/output:/app/output `
+  -v ${PWD}/config.local.json:/app/config.local.json:ro `
+  --add-host=host.docker.internal:host-gateway `
+  ai-ollama-prompt-helper
+```
+
+**Podman (Linux, rootless):**
+```bash
+podman run -d --name ai-ollama-prompt-helper \
+  -p 8000:8000 \
+  -v ./presets:/app/presets:Z \
+  -v ./output:/app/output:Z \
+  -v ./config.local.json:/app/config.local.json:ro,Z \
+  --add-host=host.docker.internal:host-gateway \
+  ai-ollama-prompt-helper
+```
+The `:Z` suffix relabels the volumes for SELinux (common on Fedora/RHEL); omit it if not applicable. `--add-host=host.docker.internal:host-gateway` requires Podman 3.2+ — alternatively use `--network=host` on Linux to reach Ollama on the host's `localhost:11434` directly (less isolation, no port mapping needed).
+
+Then open **http://localhost:8000/** in your browser. Container health can be checked at `/api/health` (also used by the image's built-in `HEALTHCHECK`).
+
+### CI: building the image automatically
+[`.github/workflows/docker-build.yml`](.github/workflows/docker-build.yml) runs the test suite and then builds the Docker image on every push/PR to `main`, pushing it to the GitHub Container Registry (`ghcr.io`) on non-PR events.
+
 # Requirements
 * easy to use
 * can simply be used in browser
