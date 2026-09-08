@@ -376,6 +376,13 @@ textarea {
   background: #f8fafc;
   margin-top: 0.4rem;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.prompt-entry strong {
+  display: block;
 }
 
 .prompt-entry pre {
@@ -383,7 +390,12 @@ textarea {
   word-break: break-word;
   font-size: 0.82rem;
   background: none;
-  margin: 0.3rem 0;
+  margin: 0;
+}
+
+.prompt-entry button {
+  align-self: flex-start;
+  margin-top: 0.2rem;
 }
 
 .toast {
