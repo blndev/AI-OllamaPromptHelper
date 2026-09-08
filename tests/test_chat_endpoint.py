@@ -156,12 +156,44 @@ class TestChatEndpoint:
         assert response.status_code == 502
         assert "LLM request failed" in response.json()["detail"]
 
-    def test_preset_with_empty_model_returns_400(self, isolated_chat_config: Path):
-        """A preset saved with no model (e.g. from before Ollama was reachable)
-        fails fast with a clear message instead of a cryptic downstream error."""
+    def test_preset_with_empty_model_uses_first_available_model(
+        self, isolated_chat_config: Path
+    ):
+        """A preset saved without a model falls back to the first model the
+        Ollama instance offers instead of failing."""
         empty_model_preset = _make_preset().model_copy(update={"model": ""})
         with patch(
             "app.api.chat.PresetRepository.get", return_value=empty_model_preset
+        ), patch(
+            "app.api.chat.OllamaClient.list_models",
+            new_callable=AsyncMock,
+            return_value=["llama3", "mistral"],
+        ), patch(
+            "app.api.chat.generate_reply", new_callable=AsyncMock
+        ) as mock_generate_reply:
+            mock_generate_reply.return_value = ChatReply(content="Hi", thinking=None)
+            response = client.post(
+                "/api/chat",
+                json={
+                    "presetId": "preset-1",
+                    "messages": [{"role": "user", "content": "Hello"}],
+                },
+            )
+
+        assert response.status_code == 200
+        assert mock_generate_reply.call_args.args[1].model == "llama3"
+
+    def test_preset_with_empty_model_and_no_models_returns_400(
+        self, isolated_chat_config: Path
+    ):
+        """Without any model available there is nothing to fall back to."""
+        empty_model_preset = _make_preset().model_copy(update={"model": ""})
+        with patch(
+            "app.api.chat.PresetRepository.get", return_value=empty_model_preset
+        ), patch(
+            "app.api.chat.OllamaClient.list_models",
+            new_callable=AsyncMock,
+            return_value=[],
         ), patch(
             "app.api.chat.generate_reply", new_callable=AsyncMock
         ) as mock_generate_reply:

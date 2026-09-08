@@ -19,6 +19,7 @@
           <label for="preset-select">Preset</label>
           <select id="preset-select"></select>
           <button id="preset-new" class="btn btn--secondary">New preset</button>
+          <button id="preset-duplicate" type="button" class="btn btn--secondary">Duplicate preset</button>
         </div>
 
         <form id="preset-form" class="form-grid">
@@ -30,6 +31,7 @@
             <button type="button" id="preset-systemPrompt-example" class="btn btn--secondary">Insert example system prompt</button>
           </div>
           <label>Model <select id="preset-model"></select></label>
+          <small class="field-hint">Optional: leave on "(no model)" to always use the first model the Ollama instance offers.</small>
           <label class="checkbox-label"><input type="checkbox" id="preset-thinking"> Thinking</label>
           <small class="field-hint">Ask the model to show its reasoning separately from the final answer (only works if the selected model supports it).</small>
           <label class="checkbox-label"><input type="checkbox" id="preset-injectPromptTemplate"> Inject prompt template</label>
@@ -97,6 +99,6 @@
     </aside>
   </main>
 
-  <script src="/app.js?v=4"></script>
+  <script src="/app.js?v=6"></script>
 </body>
 </html>

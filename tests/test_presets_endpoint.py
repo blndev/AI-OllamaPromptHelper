@@ -110,8 +110,9 @@ class TestPresetsCrudEndpoints:
         assert list_response.status_code == 200
         assert any(p["name"] == "Good Preset" for p in list_response.json())
 
-    def test_create_with_empty_model_returns_400(self, isolated_preset_folder: Path):
-        """Saving a preset with no model selected is rejected with a clear message."""
+    def test_create_with_empty_model_is_allowed(self, isolated_preset_folder: Path):
+        """A preset may be saved without a model; the chat then falls back to the
+        first model the Ollama instance offers."""
         payload = {
             "name": "No Model Preset",
             "systemPrompt": "You are helpful.",
@@ -120,11 +121,11 @@ class TestPresetsCrudEndpoints:
 
         response = client.post("/api/presets", json=payload)
 
-        assert response.status_code == 400
-        assert "model" in response.json()["detail"].lower()
+        assert response.status_code == 201
+        assert response.json()["model"] == ""
 
-    def test_update_with_empty_model_returns_400(self, isolated_preset_folder: Path):
-        """Updating a preset to have no model is rejected, existing file untouched."""
+    def test_update_to_empty_model_is_allowed(self, isolated_preset_folder: Path):
+        """Clearing the model of an existing preset is persisted."""
         payload = {
             "name": "Has Model",
             "systemPrompt": "You are helpful.",
@@ -135,17 +136,27 @@ class TestPresetsCrudEndpoints:
 
         response = client.put(
             f"/api/presets/{preset_id}",
-            json={**payload, "model": "   "},
+            json={**payload, "model": ""},
         )
 
-        assert response.status_code == 400
-        assert client.get(f"/api/presets/{preset_id}").json()["model"] == "llama3"
+        assert response.status_code == 200
+        assert client.get(f"/api/presets/{preset_id}").json()["model"] == ""
+
+    def test_create_without_model_field_is_allowed(self, isolated_preset_folder: Path):
+        """The model field is optional in the payload."""
+        response = client.post(
+            "/api/presets",
+            json={"name": "Modelless", "systemPrompt": "You are helpful."},
+        )
+
+        assert response.status_code == 201
+        assert response.json()["model"] == ""
 
     def test_list_still_returns_preexisting_preset_with_empty_model(
         self, isolated_preset_folder: Path
     ):
         """An already-saved preset with an empty model still loads (not silently
-        hidden), even though new saves with an empty model are now rejected."""
+        hidden)."""
         presets_dir = isolated_preset_folder / "presets"
         presets_dir.mkdir(parents=True, exist_ok=True)
         (presets_dir / "legacy.json").write_text(

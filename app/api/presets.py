@@ -27,20 +27,6 @@ def _slugify(name: str) -> str:
     return slug or "preset"
 
 
-def _require_model(preset: PresetIn) -> None:
-    # Enforced here (not as a Pydantic field constraint on Preset) so an
-    # already-saved preset with an empty model still loads/lists normally;
-    # only new saves are blocked until a real model is chosen.
-    if not preset.model or not preset.model.strip():
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Model must not be empty. Select a model before saving "
-                "(the dropdown is empty if Ollama is unreachable)."
-            ),
-        )
-
-
 @router.get("/api/presets", response_model=list[Preset])
 def list_presets() -> list[Preset]:
     return _repository().list()
@@ -48,7 +34,6 @@ def list_presets() -> list[Preset]:
 
 @router.post("/api/presets", response_model=Preset, status_code=201)
 def create_preset(preset: PresetIn) -> Preset:
-    _require_model(preset)
     repository = _repository()
     preset_id = _slugify(preset.name)
     try:
@@ -71,7 +56,6 @@ def get_preset(preset_id: str) -> Preset:
 
 @router.put("/api/presets/{preset_id}", response_model=Preset)
 def update_preset(preset_id: str, preset: PresetIn) -> Preset:
-    _require_model(preset)
     try:
         return _repository().update(preset_id, preset)
     except InvalidPresetIdError as exc:

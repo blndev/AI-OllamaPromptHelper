@@ -23,6 +23,7 @@ const EXAMPLE_SYSTEM_PROMPT =
 
 document.getElementById("preset-systemPrompt-example").addEventListener("click", () => {
   fieldEl("systemPrompt").value = EXAMPLE_SYSTEM_PROMPT;
+  markUnsaved();
 });
 
 function setStatus(message, variant = null) {
@@ -48,6 +49,10 @@ function fieldEl(name) {
   return document.getElementById(`preset-${name}`);
 }
 
+function markUnsaved() {
+  setStatus('⚠ Unsaved changes — click "Save preset" to keep them.', "error");
+}
+
 function fillForm(preset) {
   fieldEl("name").value = preset?.name ?? "";
   fieldEl("systemPrompt").value = preset?.systemPrompt ?? "";
@@ -65,14 +70,13 @@ function applyModelSelection() {
     return;
   }
   presetModel.value = desiredModel;
-  if (!presetModel.value) {
-    presetModel.selectedIndex = 0;
-    if (desiredModel) {
-      setStatus(
-        `⚠ Model '${desiredModel}' is not available — using '${presetModel.value}' instead.`,
-        "error"
-      );
-    }
+  if (desiredModel && !presetModel.value) {
+    // Saved model is gone from the Ollama instance: fall back to the first one.
+    presetModel.selectedIndex = presetModel.options.length > 1 ? 1 : 0;
+    setStatus(
+      `⚠ Model '${desiredModel}' is not available — switched to '${presetModel.value || "automatic"}'. Unsaved changes.`,
+      "error"
+    );
   }
 }
 
@@ -88,6 +92,11 @@ async function loadModels() {
       return;
     }
     presetModel.innerHTML = "";
+    // Empty value = save the preset without a fixed model.
+    const noneOption = document.createElement("option");
+    noneOption.value = "";
+    noneOption.textContent = "(no model — pick the first available one)";
+    presetModel.appendChild(noneOption);
     for (const model of data.models ?? []) {
       const option = document.createElement("option");
       option.value = model;
@@ -122,15 +131,33 @@ async function loadPresets(selectId) {
 
 presetSelect.addEventListener("change", () => {
   selectedId = presetSelect.value;
+  setStatus("");
   fillForm(presets.find((p) => p.id === selectedId));
   updatePresetSummaryName();
 });
 
 document.getElementById("preset-new").addEventListener("click", () => {
   selectedId = null;
+  setStatus("");
   fillForm(null);
   updatePresetSummaryName();
 });
+
+// Client-side only: keep the current field values but detach them from the
+// selected preset, so saving creates a new one.
+document.getElementById("preset-duplicate").addEventListener("click", () => {
+  selectedId = null;
+  const name = fieldEl("name").value.trim();
+  fieldEl("name").value = name ? `${name} (copy)` : "";
+  updatePresetSummaryName();
+  markUnsaved();
+  fieldEl("name").focus();
+});
+
+// Programmatic updates in fillForm() don't fire these events, so the warning
+// only appears for actual user edits.
+presetForm.addEventListener("input", markUnsaved);
+presetForm.addEventListener("change", markUnsaved);
 
 presetForm.addEventListener("submit", async (event) => {
   event.preventDefault();

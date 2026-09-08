@@ -4,6 +4,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+import httpx
 from pydantic import BaseModel
 
 from app.config import load_config
@@ -14,6 +15,7 @@ from app.services.chat_service import (
     build_messages,
     generate_reply,
 )
+from app.services.ollama_client import OllamaClient
 from app.services.preset_repository import PresetNotFoundError, PresetRepository
 
 logger = logging.getLogger(__name__)
@@ -73,11 +75,29 @@ def _require_model(preset: Preset) -> None:
         )
 
 
+async def resolve_model(config, preset: Preset) -> Preset:
+    """Return the preset unchanged, or with the first model the Ollama
+    instance offers when the preset has none configured."""
+    if preset.model and preset.model.strip():
+        return preset
+    try:
+        models = await OllamaClient(config.ollamaUrl, config.credentials).list_models()
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not reach Ollama instance at {config.ollamaUrl}: {exc}",
+        ) from exc
+    if not models:
+        _require_model(preset)
+        return preset
+    logger.info("Preset %s has no model, falling back to %s", preset.name, models[0])
+    return preset.model_copy(update={"model": models[0]})
+
+
 @router.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
     config, preset = _load_preset(request.presetId)
-    effective_preset = apply_overrides(preset, request)
-    _require_model(effective_preset)
+    effective_preset = await resolve_model(config, apply_overrides(preset, request))
 
     logger.info(
         "Chat request: preset=%s model=%s temperature=%s top_p=%s num_ctx=%s "
@@ -105,8 +125,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
 @router.post("/api/chat/stream")
 async def chat_stream(request: ChatRequest) -> StreamingResponse:
     config, preset = _load_preset(request.presetId)
-    effective_preset = apply_overrides(preset, request)
-    _require_model(effective_preset)
+    effective_preset = await resolve_model(config, apply_overrides(preset, request))
 
     async def event_generator():
         try:
