@@ -56,7 +56,7 @@ function markUnsaved() {
 function fillForm(preset) {
   fieldEl("name").value = preset?.name ?? "";
   fieldEl("systemPrompt").value = preset?.systemPrompt ?? "";
-  fieldEl("thinking").checked = Boolean(preset?.thinking);
+  fieldEl("thinking").checked = preset ? Boolean(preset.thinking) : true;
   fieldEl("injectPromptTemplate").checked = Boolean(preset?.injectPromptTemplate);
   fieldEl("temperature").value = preset?.temperature ?? DEFAULT_TUNING.temperature;
   fieldEl("top_p").value = preset?.top_p ?? DEFAULT_TUNING.top_p;
@@ -311,6 +311,7 @@ function tuningOverrides() {
   // so editing them without clicking "Save preset" only affects this chat.
   return {
     systemPrompt: fieldEl("systemPrompt").value || null,
+    model: presetModel.value || null,
     temperature: fieldEl("temperature").value ? Number(fieldEl("temperature").value) : null,
     top_p: fieldEl("top_p").value ? Number(fieldEl("top_p").value) : null,
     num_ctx: fieldEl("num_ctx").value ? Number(fieldEl("num_ctx").value) : null,

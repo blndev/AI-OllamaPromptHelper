@@ -255,6 +255,17 @@ class TestApplyOverrides:
 
         assert effective.systemPrompt == "You are a pirate."
 
+    def test_model_override_replaces_an_unavailable_preset_model(self):
+        """The model currently selected in the UI wins without saving the preset."""
+        from app.api.chat import ChatRequest, apply_overrides
+
+        preset = _make_preset().model_copy(update={"model": "no-longer-installed"})
+        request = ChatRequest(presetId="preset-1", messages=[], model="llama3")
+
+        effective = apply_overrides(preset, request)
+
+        assert effective.model == "llama3"
+
     def test_blank_system_prompt_override_is_ignored(self):
         """A blank/whitespace-only systemPrompt override does not blank out the preset."""
         from app.api.chat import ChatRequest, apply_overrides

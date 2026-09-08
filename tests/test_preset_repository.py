@@ -26,6 +26,13 @@ def _make_preset(name: str = "My Preset") -> PresetIn:
     return PresetIn(name=name, systemPrompt="You are helpful.", model="llama3")
 
 
+def test_existing_preset_without_thinking_keeps_thinking_disabled() -> None:
+    """Older stored presets without a thinking field preserve the old behavior."""
+    preset = PresetIn.model_validate({"name": "My Preset", "systemPrompt": "You are helpful."})
+
+    assert preset.thinking is False
+
+
 class TestPresetRepositoryCrud:
     """Tests for create/get/list/update/delete round-trips."""
 

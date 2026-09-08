@@ -28,6 +28,7 @@ class ChatRequest(BaseModel):
     # Per-chat overrides; when set they win over the preset's stored defaults
     # for this request only and are never written back to the preset file.
     systemPrompt: str | None = None
+    model: str | None = None
     temperature: float | None = None
     top_p: float | None = None
     num_ctx: int | None = None
@@ -48,13 +49,15 @@ def _load_preset(preset_id: str):
 
 
 def apply_overrides(preset: Preset, request: ChatRequest) -> Preset:
-    """Return a copy of preset with systemPrompt/temperature/top_p/num_ctx
+    """Return a copy of preset with systemPrompt/model/temperature/top_p/num_ctx
     replaced by any request overrides, leaving fields the request left as
     None (or blank for systemPrompt) unchanged. Never persisted: this only
     returns an in-memory copy."""
     overrides = {}
     if request.systemPrompt is not None and request.systemPrompt.strip():
         overrides["systemPrompt"] = request.systemPrompt
+    if request.model is not None and request.model.strip():
+        overrides["model"] = request.model
     if request.temperature is not None:
         overrides["temperature"] = request.temperature
     if request.top_p is not None:
