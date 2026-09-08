@@ -446,6 +446,12 @@ function renderChat() {
   updateContextIndicator();
 }
 
+function scrollChatHistoryToBottom() {
+  requestAnimationFrame(() => {
+    chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+  });
+}
+
 function deleteMessage(index) {
   const [message] = chatMessages.splice(index, 1);
   lastDeleted = { message, index };
@@ -528,6 +534,8 @@ async function runAssistantStream(historyForContext, signal) {
   };
   chatMessages.push(assistantMessage);
   triggerAutosave();
+  renderChat();
+  scrollChatHistoryToBottom();
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -567,6 +575,7 @@ async function runAssistantStream(historyForContext, signal) {
           }
           clearChatStatus("Thinking...");
           renderChat();
+          scrollChatHistoryToBottom();
         } else if (payload.delta) {
           assistantMessage.content += payload.delta;
           // The actual answer takes over, so collapse the reasoning again.
@@ -574,11 +583,13 @@ async function runAssistantStream(historyForContext, signal) {
             assistantMessage.thinkingOpen = false;
           }
           renderChat();
+          scrollChatHistoryToBottom();
         } else if (payload.detail) {
           failed = true;
           assistantMessage.failed = true;
           setChatError(payload.detail);
           renderChat();
+          scrollChatHistoryToBottom();
         }
       }
     }
@@ -725,6 +736,7 @@ chatForm.addEventListener("submit", async (event) => {
   chatMessages.push(userMessage);
   triggerAutosave();
   renderChat();
+  scrollChatHistoryToBottom();
   chatInput.value = "";
   resetImageSelection();
   clearChatStatus("Waiting for response...");
