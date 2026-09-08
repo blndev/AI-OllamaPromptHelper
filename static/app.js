@@ -246,6 +246,13 @@ const chatSaveButton = document.getElementById("chat-save");
 const chatLoadButton = document.getElementById("chat-load");
 const chatHistorySelect = document.getElementById("chat-history-select");
 const chatAutosaveStatus = document.getElementById("chat-autosave-status");
+const chatStopButton = document.getElementById("chat-stop");
+// Set while a streaming reply is in flight so "Stop" can abort it.
+let activeStreamController = null;
+
+chatStopButton.addEventListener("click", () => {
+  activeStreamController?.abort();
+});
 
 // Errors (e.g. "LLM unreachable") stay visible until the next successful
 // action, instead of being wiped out by the "" reset right after the call.
@@ -327,7 +334,12 @@ function renderChat() {
       // Kept on the message so streaming re-renders don't collapse it again.
       details.open = Boolean(message.thinkingOpen);
       details.addEventListener("toggle", () => {
+        if (details.open === Boolean(message.thinkingOpen)) {
+          return;
+        }
         message.thinkingOpen = details.open;
+        // A manual toggle wins over the automatic open/close while streaming.
+        message.thinkingManual = true;
       });
       const summary = document.createElement("summary");
       summary.textContent = "Thinking";
@@ -410,11 +422,24 @@ deselectAllButton.addEventListener("click", () => {
 });
 
 async function streamAssistantReply(historyForContext) {
+  const controller = new AbortController();
+  activeStreamController = controller;
+  chatStopButton.style.display = "";
+  try {
+    return await runAssistantStream(historyForContext, controller.signal);
+  } finally {
+    activeStreamController = null;
+    chatStopButton.style.display = "none";
+  }
+}
+
+async function runAssistantStream(historyForContext, signal) {
   let response;
   try {
     response = await fetch("/api/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal,
       body: JSON.stringify({
         presetId: selectedId,
         messages: historyForContext.map((m) => ({
@@ -426,6 +451,10 @@ async function streamAssistantReply(historyForContext) {
       }),
     });
   } catch (err) {
+    if (err.name === "AbortError") {
+      clearChatStatus("⏹ Generation stopped.");
+      return false;
+    }
     // The FastAPI server itself is unreachable (not just Ollama).
     setChatError(`Could not reach the server: ${err}`);
     return false;
@@ -451,44 +480,66 @@ async function streamAssistantReply(historyForContext) {
   const decoder = new TextDecoder();
   let buffer = "";
   let failed = false;
+  let stopped = false;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n");
-    buffer = events.pop();
-    for (const rawEvent of events) {
-      const lines = rawEvent.split("\n");
-      const eventLine = lines.find((line) => line.startsWith("event: "));
-      const dataLine = lines.find((line) => line.startsWith("data: "));
-      if (!dataLine) {
-        continue;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
       }
-      const eventType = eventLine ? eventLine.slice("event: ".length) : "message";
-      const payload = JSON.parse(dataLine.slice("data: ".length));
-      if (eventType === "debug") {
-        // Exact payload the backend sends to Ollama's API (role/content/images),
-        // shown in the "Request sent to Ollama" panel so it's visible without
-        // a debugger or the browser network tab.
-        showLastRequestDebug(payload);
-      } else if (eventType === "thinking" && payload.delta) {
-        assistantMessage.thinking += payload.delta;
-        renderChat();
-      } else if (payload.delta) {
-        assistantMessage.content += payload.delta;
-        renderChat();
-      } else if (payload.detail) {
-        failed = true;
-        assistantMessage.failed = true;
-        setChatError(payload.detail);
-        renderChat();
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop();
+      for (const rawEvent of events) {
+        const lines = rawEvent.split("\n");
+        const eventLine = lines.find((line) => line.startsWith("event: "));
+        const dataLine = lines.find((line) => line.startsWith("data: "));
+        if (!dataLine) {
+          continue;
+        }
+        const eventType = eventLine ? eventLine.slice("event: ".length) : "message";
+        const payload = JSON.parse(dataLine.slice("data: ".length));
+        if (eventType === "debug") {
+          // Exact payload the backend sends to Ollama's API (role/content/images),
+          // shown in the "Request sent to Ollama" panel so it's visible without
+          // a debugger or the browser network tab.
+          showLastRequestDebug(payload);
+        } else if (eventType === "thinking" && payload.delta) {
+          assistantMessage.thinking += payload.delta;
+          // Show the reasoning while it streams, so long "thinking" phases
+          // don't look like a frozen UI.
+          if (!assistantMessage.thinkingManual) {
+            assistantMessage.thinkingOpen = true;
+          }
+          clearChatStatus("Thinking...");
+          renderChat();
+        } else if (payload.delta) {
+          assistantMessage.content += payload.delta;
+          // The actual answer takes over, so collapse the reasoning again.
+          if (!assistantMessage.thinkingManual) {
+            assistantMessage.thinkingOpen = false;
+          }
+          renderChat();
+        } else if (payload.detail) {
+          failed = true;
+          assistantMessage.failed = true;
+          setChatError(payload.detail);
+          renderChat();
+        }
       }
     }
+  } catch (err) {
+    if (err.name !== "AbortError") {
+      throw err;
+    }
+    stopped = true;
   }
   renderChat();
+  if (stopped) {
+    clearChatStatus("⏹ Generation stopped — the partial answer was kept.");
+    return false;
+  }
   if (failed) {
     return false;
   }

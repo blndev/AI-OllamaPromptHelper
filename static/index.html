@@ -85,6 +85,7 @@
           <textarea id="chat-input" rows="3" placeholder="Type your message... (Enter to send, Shift+Enter for a new line)" required></textarea>
           <input type="file" id="chat-image-input" accept="image/*">
           <button type="submit" class="btn btn--primary">Send</button>
+          <button type="button" id="chat-stop" class="btn btn--danger" style="display:none;">Stop</button>
         </form>
         <p id="chat-status" class="status-text"></p>
         <div id="chat-undo-toast" class="toast" style="display:none;">
@@ -99,6 +100,6 @@
     </aside>
   </main>
 
-  <script src="/app.js?v=7"></script>
+  <script src="/app.js?v=8"></script>
 </body>
 </html>
