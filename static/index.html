@@ -65,7 +65,7 @@
           <button type="button" id="chat-deselect-all" class="btn btn--secondary">Deselect all</button>
           <button type="button" id="chat-new" class="btn btn--secondary">New chat</button>
           <button type="button" id="chat-save" class="btn btn--secondary">Save history</button>
-          <select id="chat-history-select"></select>
+          <select id="chat-history-select"><option value="">-- select saved chat --</option></select>
           <button type="button" id="chat-load" class="btn btn--secondary">Load</button>
           <span id="chat-context-indicator" class="pill"></span>
           <span id="chat-autosave-status" class="muted"></span>
@@ -73,12 +73,6 @@
         <div id="prompt-workshop-controls" class="row">
           <label for="topic-input">Topic</label>
           <input type="text" id="topic-input" placeholder="e.g. fantasy landscapes">
-          <label for="prompt-type-select">Prompt type</label>
-          <select id="prompt-type-select">
-            <option value="image">image</option>
-            <option value="video">video</option>
-            <option value="text">text</option>
-          </select>
         </div>
         <details id="debug-panel" style="display:none;">
           <summary>🔍 Request sent to Ollama (last message)</summary>

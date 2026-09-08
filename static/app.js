@@ -254,7 +254,6 @@ const undoToast = document.getElementById("chat-undo-toast");
 const undoButton = document.getElementById("chat-undo-button");
 const deselectAllButton = document.getElementById("chat-deselect-all");
 const topicInput = document.getElementById("topic-input");
-const promptTypeSelect = document.getElementById("prompt-type-select");
 const promptLibraryEl = document.getElementById("prompt-library");
 const chatNewButton = document.getElementById("chat-new");
 const chatSaveButton = document.getElementById("chat-save");
@@ -761,7 +760,6 @@ function currentHistoryPayload() {
   return {
     presetId: selectedId,
     topic: topicInput.value.trim(),
-    promptType: promptTypeSelect.value,
     messages: chatMessages.map((m) => ({
       role: m.role,
       content: m.content,
@@ -785,7 +783,6 @@ function applyHistory(history) {
   }
   updatePresetSummaryName();
   topicInput.value = history.topic ?? "";
-  promptTypeSelect.value = history.promptType ?? "text";
   chatMessages = (history.messages ?? []).map((m) => ({
     id: nextMessageId++,
     role: m.role,
@@ -830,13 +827,19 @@ async function loadHistoryNames() {
   try {
     const response = await fetch("/api/chat-history/list");
     const data = await response.json();
+    const previouslySelected = chatHistorySelect.value;
     chatHistorySelect.innerHTML = "";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "-- select saved chat --";
+    chatHistorySelect.appendChild(placeholder);
     for (const name of data.names ?? []) {
       const option = document.createElement("option");
       option.value = name;
       option.textContent = name;
       chatHistorySelect.appendChild(option);
     }
+    chatHistorySelect.value = previouslySelected;
   } catch (err) {
     chatStatus.textContent = `Could not load chat history list: ${err}`;
   }
@@ -846,8 +849,10 @@ chatNewButton.addEventListener("click", () => {
   // Keep the currently selected preset — only the conversation is cleared.
   chatMessages = [];
   topicInput.value = "";
-  promptTypeSelect.value = "text";
   promptLibraryEl.innerHTML = "";
+  // Clear the load-history selection too, otherwise it still points at the
+  // previously loaded/saved chat even though the conversation was reset.
+  chatHistorySelect.value = "";
   renderChat();
 });
 

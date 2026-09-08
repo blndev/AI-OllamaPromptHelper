@@ -20,5 +20,4 @@ class ChatHistory(BaseModel):
 
     presetId: str | None = None
     topic: str = ""
-    promptType: str = "text"
     messages: list[ChatHistoryMessage] = []

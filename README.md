@@ -171,6 +171,8 @@ This project is licensed under the [MIT License](LICENSE).
 * Added `docker-compose.yml` to start the app together with an `ollama` container (with a named volume for pulled models).
 * Documented running the app via [`run.sh`](run.sh) on Linux/macOS.
 * Added Features, Running Tests, Contributing and License sections to the README.
+* "New chat" now also resets the "load history" dropdown, so it no longer keeps pointing at a chat that was just cleared.
+* Removed the "Prompt type" dropdown from the chat controls — it had no effect on the model or extraction; the extracted prompt type is decided by the model via the `<prompt type="...">` markup.
 
 ### v1.0.0
 * Initial release: chat-based prompt workshop with presets, multimodal input, thinking mode, chat history management and Markdown prompt extraction.
@@ -258,13 +260,20 @@ A JSON configuration file provides:
 * The current chat is additionally autosaved periodically (and/or on every new message) to a dedicated autosave file, independent of the manual save/load action, to prevent data loss on crash or reload.
 * The UI shows an indicator of the current context size (e.g. number of included messages and an approximate token estimate) so the user can see when the context sent to the LLM grows large.
 
+### 7a. "New chat", overwriting and deleting saved histories
+* **New chat** only clears the in-memory conversation (messages, topic, prompt library view) in the browser. It does **not** delete or modify any file on disk — neither a named save nor the autosave slot. The "load history" dropdown is also reset to its empty placeholder so it no longer points at a chat that is no longer on screen.
+* **Autosave** runs on a fixed timer (every 30s) and after every new message, always into one single reserved file (`_autosave.json` under `<outputFolder>/chats/`), completely independent of the "load history" dropdown selection. Starting a new chat and then waiting/sending a message overwrites `_autosave.json` with the (now empty/new) conversation — this is expected and does **not** touch any named save.
+* **Save history** always asks for a name (a browser prompt) and writes `<outputFolder>/chats/<slugified-name>.json`. Saving again under a name that already exists **silently overwrites** that file — there is currently no confirmation dialog, so double-check the name before saving if you want to keep the previous version.
+* **Load** reads the selected named file and replaces the current in-memory conversation; it does not affect any file on disk.
+* **Deleting** a saved history is not exposed in the UI yet — remove the corresponding file directly from `<outputFolder>/chats/` (e.g. `output/chats/my-chat.json`) to delete it; it will then disappear from the dropdown the next time the list is refreshed (e.g. after a page reload).
+
 ## 8. Thinking Mode
 * "Thinking" is a per-preset setting (on/off) reflecting whether the selected model's reasoning/thinking output is requested and shown.
 * When enabled, the model's "thinking" output is visually distinguished from the final response (e.g. separate/collapsible section, rendered in italics), not mixed into the same message bubble.
 
 ## 9. Prompt Extraction & Markdown Export
 * Detection mechanism: when a preset has "Inject prompt template" (`injectPromptTemplate`) checked, the system prompt instructs the model to wrap generated prompts in a defined, machine-parseable markup (e.g. a dedicated tag or fenced code block with a type attribute, such as `<prompt type="image">...</prompt>`). The UI parses the LLM response for this markup to detect prompts automatically.
-* Prompt type (video/image/text): specified by the user, analogous to the topic field. The UI may offer a pre-selected default type (e.g. derived from the preset) which the user can change or extend.
+* Prompt type (video/image/text): decided entirely by the model itself via the `type="..."` attribute it writes in the `<prompt type="..." description="...">` markup (see the injected instruction in `chat_service.py`). There used to be a "Prompt type" dropdown in the UI, but it had no effect on the model or extraction (it only round-tripped through the chat history JSON), so it was removed.
 * Detected prompts are appended to the Markdown file for the currently active topic. Each entry contains:
   * short description
   * prompt type (video/image/text)

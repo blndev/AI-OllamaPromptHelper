@@ -32,7 +32,6 @@ def _sample_history_payload() -> dict:
     return {
         "presetId": "p1",
         "topic": "My Topic",
-        "promptType": "image",
         "messages": [
             {"role": "user", "content": "Hello", "image": None, "checked": True},
             {"role": "assistant", "content": "Hi there", "image": None, "checked": False},

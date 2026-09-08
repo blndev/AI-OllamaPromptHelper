@@ -20,7 +20,6 @@ def _sample_history() -> ChatHistory:
     return ChatHistory(
         presetId="p1",
         topic="My Topic",
-        promptType="image",
         messages=[
             ChatHistoryMessage(role="user", content="Hello"),
             ChatHistoryMessage(role="assistant", content="Hi there", checked=False),
