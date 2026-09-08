@@ -21,6 +21,17 @@ Vibe Coded
 ![AI-OllamaPromptHelper screenshot](assets/screenshot.png)
 
 
+## Best Practices
+
+* **Attach an image only with a vision-capable model** — the image-prompt presets work from a plain text topic *and* from an attached image. If you want to attach one, first select a multimodal model (e.g. `qwen2.5vl`, `llava`, `gemma3`) in the preset. A text-only model silently ignores the image and will invent its content.
+* **Say in your own message what the reference image is for** — the presets deliberately don't guess. Write e.g. *"übernimm nur Farbpalette und Licht, das Motiv bleibt wie beschrieben"* or *"halte die Figur identisch, variiere nur die Umgebung"*. Without that, the model decides on its own how much of the image to carry over.
+* **The preset is a starting point, not a straitjacket** — you can steer it further in your own message at any time: *"nur eine Variante"*, *"alle drei im Hochformat"*, *"mach Variante 2 nochmal als Nachtszene"*. The system prompt sets the default behavior, your message overrides it.
+* **Match the preset to the target generator** — prompt style differs a lot between Krea 2, Qwen-Image, FLUX.1, Stable Diffusion and MiniMax H3. Using the wrong preset produces prompts that technically work but never exploit the generator's strengths (e.g. Qwen-Image's text rendering, FLUX.1's compositional adherence).
+* **Say what should be there, not what to avoid** — modern generators follow positive instructions far better than "no X". Negative prompts only make sense for the Stable Diffusion preset, because SD/SDXL genuinely supports them.
+* **Set the Topic before you generate** — the Topic field decides which Markdown file the extracted prompts land in. Change it whenever you switch subject so your prompt library stays sorted.
+* **Prune the context with the message checkboxes** — uncheck earlier turns once a direction is settled. It keeps the context small and fast, and stops the model from mixing abandoned ideas back in.
+
+
 ## Getting Started
 
 ### Prerequisites
