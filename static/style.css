@@ -276,6 +276,10 @@ textarea {
   font-size: 0.8rem;
 }
 
+#chat-image-remove {
+  font-size: 0.8rem;
+}
+
 #debug-panel {
   margin-bottom: 0.75rem;
   font-size: 0.82rem;

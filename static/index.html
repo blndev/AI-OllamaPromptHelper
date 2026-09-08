@@ -87,11 +87,12 @@
         <div id="chat-history"></div>
         <form id="chat-form" class="chat-input-row">
           <div class="chat-upload-row">
+            <span id="chat-image-filename" class="file-filename">No file selected</span>
             <label class="file-picker" for="chat-image-input">
               <span>Browse...</span>
               <input type="file" id="chat-image-input" accept="image/*">
             </label>
-            <span id="chat-image-filename" class="file-filename">No file selected</span>
+            <button type="button" id="chat-image-remove" class="btn btn--secondary" disabled>Remove image</button>
           </div>
           <div class="chat-input-main">
             <textarea id="chat-input" rows="3" placeholder="Type your message... (Enter to send, Shift+Enter for a new line)" required></textarea>
@@ -114,6 +115,6 @@
     </aside>
   </main>
 
-  <script src="/app.js?v=8"></script>
+  <script src="/app.js?v=9"></script>
 </body>
 </html>

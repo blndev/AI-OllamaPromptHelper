@@ -247,6 +247,7 @@ const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 const chatImageInput = document.getElementById("chat-image-input");
 const chatImageFilename = document.getElementById("chat-image-filename");
+const chatImageRemove = document.getElementById("chat-image-remove");
 const chatStatus = document.getElementById("chat-status");
 const contextIndicator = document.getElementById("chat-context-indicator");
 const undoToast = document.getElementById("chat-undo-toast");
@@ -693,14 +694,19 @@ async function regenerateLast() {
   }
 }
 
+function resetImageSelection() {
+  chatImageInput.value = "";
+  chatImageFilename.textContent = "No file selected";
+  chatImageRemove.disabled = true;
+}
+
 chatImageInput.addEventListener("change", () => {
   const file = chatImageInput.files[0];
-  if (!file) {
-    chatImageFilename.textContent = "No file selected";
-    return;
-  }
-  chatImageFilename.textContent = file.name;
+  chatImageFilename.textContent = file?.name ?? "No file selected";
+  chatImageRemove.disabled = !file;
 });
+
+chatImageRemove.addEventListener("click", resetImageSelection);
 
 chatForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -720,8 +726,7 @@ chatForm.addEventListener("submit", async (event) => {
   triggerAutosave();
   renderChat();
   chatInput.value = "";
-  chatImageInput.value = "";
-  chatImageFilename.textContent = "No file selected";
+  resetImageSelection();
   clearChatStatus("Waiting for response...");
 
   const ok = await streamAssistantReply(chatMessages.filter((m) => m.checked));
