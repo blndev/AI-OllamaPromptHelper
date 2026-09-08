@@ -9,7 +9,8 @@ class PresetIn(BaseModel):
 
     name: str
     systemPrompt: str
-    model: str
+    # May be empty: a preset can be saved before any model is picked/available.
+    model: str = ""
     thinking: bool = False
     # When True, an instruction to wrap generated prompt suggestions in
     # <prompt> markup is appended to the system prompt (see build_system_prompt

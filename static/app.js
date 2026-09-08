@@ -9,6 +9,9 @@ const presetStatus = document.getElementById("preset-status");
 
 let presets = [];
 let selectedId = null;
+// Model requested by the selected preset; re-applied once /api/models answers,
+// since models and presets are loaded in parallel.
+let desiredModel = "";
 // Sensible starting values for a new preset (README.md section 4: optional tuning fields).
 const DEFAULT_TUNING = { temperature: 0.8, top_p: 0.9, num_ctx: 4096 };
 // Shown via the "Insert example system prompt" button, pairs well with the
@@ -53,7 +56,24 @@ function fillForm(preset) {
   fieldEl("temperature").value = preset?.temperature ?? DEFAULT_TUNING.temperature;
   fieldEl("top_p").value = preset?.top_p ?? DEFAULT_TUNING.top_p;
   fieldEl("num_ctx").value = preset?.num_ctx ?? DEFAULT_TUNING.num_ctx;
-  presetModel.value = preset?.model ?? "";
+  desiredModel = preset?.model ?? "";
+  applyModelSelection();
+}
+
+function applyModelSelection() {
+  if (!presetModel.options.length) {
+    return;
+  }
+  presetModel.value = desiredModel;
+  if (!presetModel.value) {
+    presetModel.selectedIndex = 0;
+    if (desiredModel) {
+      setStatus(
+        `⚠ Model '${desiredModel}' is not available — using '${presetModel.value}' instead.`,
+        "error"
+      );
+    }
+  }
 }
 
 async function loadModels() {
@@ -74,6 +94,7 @@ async function loadModels() {
       option.textContent = model;
       presetModel.appendChild(option);
     }
+    applyModelSelection();
   } catch (err) {
     setStatus(`⚠ Could not load models: ${err}`, "error");
   }

@@ -3,5 +3,5 @@
   "credentials": null,
   "presetFolder": "./presets",
   "outputFolder": "./output",
-  "debugMode": true
+  "debugMode": false
 }
