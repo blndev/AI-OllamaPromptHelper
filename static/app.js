@@ -311,6 +311,52 @@ function showLastRequestDebug(payload) {
   debugPanel.open = true;
 }
 
+function renderMessageText(message) {
+  const content = message.content ?? "";
+  const fragment = document.createDocumentFragment();
+  const rolePrefix = document.createElement("span");
+  rolePrefix.textContent = `${message.role}: `;
+  fragment.appendChild(rolePrefix);
+
+  const promptTagPattern = /<prompt\s+([^>]*?)>([\s\S]*?)<\/prompt>/gi;
+  let lastIndex = 0;
+  let match;
+  let foundPrompt = false;
+
+  while ((match = promptTagPattern.exec(content)) !== null) {
+    foundPrompt = true;
+    const before = content.slice(lastIndex, match.index);
+    if (before) {
+      const beforeNode = document.createElement("span");
+      beforeNode.textContent = before;
+      fragment.appendChild(beforeNode);
+    }
+
+    const attrs = match[1] ?? "";
+    const promptBody = match[2] ?? "";
+    const typeMatch = /(?:^|\s)type\s*=\s*"([^"]*)"/i.exec(attrs);
+    const descriptionMatch = /(?:^|\s)description\s*=\s*"([^"]*)"/i.exec(attrs);
+    fragment.appendChild(
+      renderPromptEntry({
+        type: typeMatch?.[1] ?? "text",
+        description: descriptionMatch?.[1] ?? "Prompt",
+        prompt: promptBody.trim(),
+      })
+    );
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  const tail = content.slice(lastIndex);
+  if (tail || !foundPrompt) {
+    const textNode = document.createElement("span");
+    textNode.textContent = foundPrompt ? tail : content;
+    fragment.appendChild(textNode);
+  }
+
+  return fragment;
+}
+
 function renderChat() {
   chatHistoryEl.innerHTML = "";
   chatMessages.forEach((message, index) => {
@@ -357,9 +403,6 @@ function renderChat() {
       row.append(thumb);
     }
 
-    const text = document.createElement("span");
-    text.textContent = `${message.role}: ${message.content}`;
-
     if (message.failed) {
       const failedNote = document.createElement("span");
       failedNote.className = "chat-message-failed";
@@ -372,13 +415,8 @@ function renderChat() {
     deleteBtn.textContent = "Delete";
     deleteBtn.addEventListener("click", () => deleteMessage(index));
 
-    row.append(text);
-
-    if (message.extractedPrompts?.length) {
-      for (const entry of message.extractedPrompts) {
-        row.appendChild(renderPromptEntry(entry));
-      }
-    }
+    const body = renderMessageText(message);
+    row.append(body);
 
     if (message.role === "assistant" && index === chatMessages.length - 1) {
       const regenBtn = document.createElement("button");
