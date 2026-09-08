@@ -324,6 +324,11 @@ function renderChat() {
     if (message.thinking) {
       const details = document.createElement("details");
       details.className = "chat-thinking";
+      // Kept on the message so streaming re-renders don't collapse it again.
+      details.open = Boolean(message.thinkingOpen);
+      details.addEventListener("toggle", () => {
+        message.thinkingOpen = details.open;
+      });
       const summary = document.createElement("summary");
       summary.textContent = "Thinking";
       const thinkingText = document.createElement("span");
