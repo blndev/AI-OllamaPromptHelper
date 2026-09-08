@@ -12,6 +12,8 @@ class AppConfig(BaseModel):
     credentials: str | None = None
     presetFolder: str
     outputFolder: str
+    appTitle: str = "AI Ollama Prompt Helper"
+    version: str = "dev"
     # When True, the backend emits the raw request payload sent to Ollama as
     # an SSE "debug" event and the frontend shows a "Request sent to Ollama"
     # panel. Off by default so system prompts/messages are never exposed

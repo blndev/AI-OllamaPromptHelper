@@ -206,12 +206,25 @@ document.getElementById("preset-delete").addEventListener("click", async () => {
   await loadPresets();
 });
 
+function applyStaticHeaderConfig(config) {
+  const title = document.getElementById("app-title");
+  const version = document.getElementById("app-version");
+  if (title && config.appTitle) {
+    title.textContent = config.appTitle;
+    document.title = config.appTitle;
+  }
+  if (version && config.version) {
+    version.textContent = `v${config.version}`;
+  }
+}
+
 async function applyServerFeatureFlags() {
   // The debug panel is opt-in via config.json ("debugMode": true) so system
   // prompts/message content are never exposed unless explicitly enabled.
   try {
     const response = await fetch("/api/health");
     const data = await response.json();
+    applyStaticHeaderConfig(data);
     const debugPanel = document.getElementById("debug-panel");
     if (data.debugMode) {
       debugPanel.style.display = "";

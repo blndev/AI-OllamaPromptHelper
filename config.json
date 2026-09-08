@@ -3,5 +3,7 @@
   "credentials": null,
   "presetFolder": "./presets",
   "outputFolder": "./output",
+  "appTitle": "Ollama Prompt Helper",
+  "version": "1.0.0",
   "debugMode": false
 }

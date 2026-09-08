@@ -38,13 +38,26 @@ body {
 }
 
 .app-header__hint {
-  margin: 0.25rem 0 0;
+  margin: 0.35rem 0 0;
   font-size: 0.85rem;
   color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.app-header__hint a {
-  color: #93c5fd;
+#app-version {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(147, 197, 253, 0.15);
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  color: #dbeafe;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .app-layout {

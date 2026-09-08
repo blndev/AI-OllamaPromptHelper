@@ -20,6 +20,8 @@ class TestLoadConfig:
                     "credentials": "secret",
                     "presetFolder": str(tmp_path / "presets"),
                     "outputFolder": str(tmp_path / "output"),
+                    "appTitle": "Prompt Studio",
+                    "version": "2.4.1",
                 }
             ),
             encoding="utf-8",
@@ -31,6 +33,8 @@ class TestLoadConfig:
         assert config.credentials == "secret"
         assert config.presetFolder == str(tmp_path / "presets")
         assert config.outputFolder == str(tmp_path / "output")
+        assert config.appTitle == "Prompt Studio"
+        assert config.version == "2.4.1"
         assert Path(config.presetFolder).is_dir()
         assert Path(config.outputFolder).is_dir()
 
