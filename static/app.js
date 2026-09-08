@@ -12,9 +12,23 @@ let selectedId = null;
 // Sensible starting values for a new preset (README.md section 4: optional tuning fields).
 const DEFAULT_TUNING = { temperature: 0.8, top_p: 0.9, num_ctx: 4096 };
 
-function setStatus(message, isError = false) {
+function setStatus(message, variant = null) {
   presetStatus.textContent = message;
-  presetStatus.classList.toggle("status-text--error", isError);
+  presetStatus.classList.toggle("status-text--error", variant === "error");
+  presetStatus.classList.toggle("status-text--success", variant === "success");
+  if (variant === "success") {
+    // Brief flash so a save is noticeable even if you're not looking at the
+    // status line, not just a quiet color/text change.
+    presetStatus.classList.remove("status-text--flash");
+    // Force a reflow so the animation restarts on consecutive saves.
+    void presetStatus.offsetWidth;
+    presetStatus.classList.add("status-text--flash");
+  }
+}
+
+function updatePresetSummaryName() {
+  const current = presets.find((p) => p.id === selectedId);
+  document.getElementById("preset-summary-name").textContent = current ? ` — ${current.name}` : "";
 }
 
 function fieldEl(name) {
@@ -39,7 +53,7 @@ async function loadModels() {
     if (!response.ok) {
       // fetch() resolves normally for HTTP error statuses, so a 502 from an
       // unreachable Ollama instance would otherwise pass silently unnoticed.
-      setStatus(`⚠ ${data.detail ?? "Could not reach the Ollama instance."}`, true);
+      setStatus(`⚠ ${data.detail ?? "Could not reach the Ollama instance."}`, "error");
       presetModel.innerHTML = "";
       return;
     }
@@ -51,7 +65,7 @@ async function loadModels() {
       presetModel.appendChild(option);
     }
   } catch (err) {
-    setStatus(`⚠ Could not load models: ${err}`, true);
+    setStatus(`⚠ Could not load models: ${err}`, "error");
   }
 }
 
@@ -72,16 +86,19 @@ async function loadPresets(selectId) {
   } else {
     fillForm(null);
   }
+  updatePresetSummaryName();
 }
 
 presetSelect.addEventListener("change", () => {
   selectedId = presetSelect.value;
   fillForm(presets.find((p) => p.id === selectedId));
+  updatePresetSummaryName();
 });
 
 document.getElementById("preset-new").addEventListener("click", () => {
   selectedId = null;
   fillForm(null);
+  updatePresetSummaryName();
 });
 
 presetForm.addEventListener("submit", async (event) => {
@@ -107,12 +124,12 @@ presetForm.addEventListener("submit", async (event) => {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    setStatus(`⚠ ${error.detail ?? response.statusText}`, true);
+    setStatus(`⚠ ${error.detail ?? response.statusText}`, "error");
     return;
   }
 
   const saved = await response.json();
-  setStatus(`Saved preset '${saved.name}'.`);
+  setStatus(`✅ Saved preset '${saved.name}'.`, "success");
   await loadPresets(saved.id);
 });
 
@@ -123,10 +140,10 @@ document.getElementById("preset-delete").addEventListener("click", async () => {
   const response = await fetch(`/api/presets/${selectedId}`, { method: "DELETE" });
   if (!response.ok && response.status !== 204) {
     const error = await response.json().catch(() => ({}));
-    setStatus(`⚠ ${error.detail ?? response.statusText}`, true);
+    setStatus(`⚠ ${error.detail ?? response.statusText}`, "error");
     return;
   }
-  setStatus("Preset deleted.");
+  setStatus("Preset deleted.", "success");
   selectedId = null;
   await loadPresets();
 });
@@ -252,6 +269,7 @@ function renderChat() {
       const summary = document.createElement("summary");
       summary.textContent = "Thinking";
       const thinkingText = document.createElement("span");
+      thinkingText.className = "chat-thinking-text";
       thinkingText.textContent = message.thinking;
       details.append(summary, thinkingText);
       row.append(details);
@@ -556,6 +574,7 @@ function applyHistory(history) {
     selectedId = null;
     presetSelect.value = "";
   }
+  updatePresetSummaryName();
   topicInput.value = history.topic ?? "";
   promptTypeSelect.value = history.promptType ?? "text";
   chatMessages = (history.messages ?? []).map((m) => ({

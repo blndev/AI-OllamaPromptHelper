@@ -163,6 +163,8 @@ A JSON configuration file provides:
 * Any change made in the UI (edit or create) is persisted back to the preset JSON file(s), not just kept for the current session.
 * The `model` field in the preset editor is filled from a dropdown of models auto-discovered from the Ollama instance (e.g. via its model-list endpoint) instead of free text entry, to avoid typos/invalid model names.
 * The tuning parameters (`temperature`, `top_p`, `num_ctx`) can additionally be overridden temporarily within an ongoing chat (e.g. via a collapsible "tuning" panel), without modifying the underlying preset file — the preset always remains the source of the default values.
+* Saving a preset (create or update) gives clear visual confirmation (e.g. a green, briefly highlighted status message), so it's obvious the save succeeded without having to guess.
+* The Presets area is collapsible; the name of the currently selected preset stays visible next to the section heading even while the section is collapsed.
 
 ## 5. Topic Field
 * The "Topic" is a free text field that can be changed at any point during an ongoing chat (not fixed once at session start).
@@ -185,7 +187,7 @@ A JSON configuration file provides:
 
 ## 8. Thinking Mode
 * "Thinking" is a per-preset setting (on/off) reflecting whether the selected model's reasoning/thinking output is requested and shown.
-* When enabled, the model's "thinking" output is visually distinguished from the final response (e.g. separate/collapsible section), not mixed into the same message bubble.
+* When enabled, the model's "thinking" output is visually distinguished from the final response (e.g. separate/collapsible section, rendered in italics), not mixed into the same message bubble.
 
 ## 9. Prompt Extraction & Markdown Export
 * Detection mechanism: when a preset has a `promptIdentifier` configured, the system prompt instructs the model to wrap generated prompts in a defined, machine-parseable markup (e.g. a dedicated tag or fenced code block with a type attribute, such as `<prompt type="image">...</prompt>`). The UI parses the LLM response for this markup to detect prompts automatically.

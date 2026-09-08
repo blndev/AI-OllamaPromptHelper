@@ -247,6 +247,27 @@ textarea {
   font-weight: 600;
 }
 
+.status-text--success {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.status-text--flash {
+  animation: statusFlash 0.9s ease;
+  border-radius: 4px;
+}
+
+@keyframes statusFlash {
+  0% { background-color: rgba(22, 163, 74, 0.25); }
+  100% { background-color: transparent; }
+}
+
+#preset-summary-name {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
 .chat-message-failed {
   color: var(--danger);
   font-size: 0.82rem;
@@ -307,7 +328,18 @@ textarea {
   font-size: 0.8rem;
   color: #92720a;
   width: 100%;
+}
+
+.chat-thinking summary {
   font-style: normal;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-thinking-text {
+  display: block;
+  font-style: italic;
+  margin-top: 0.25rem;
 }
 
 .chat-image-thumb {
