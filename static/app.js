@@ -246,6 +246,7 @@ const chatHistoryEl = document.getElementById("chat-history");
 const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 const chatImageInput = document.getElementById("chat-image-input");
+const chatImageFilename = document.getElementById("chat-image-filename");
 const chatStatus = document.getElementById("chat-status");
 const contextIndicator = document.getElementById("chat-context-indicator");
 const undoToast = document.getElementById("chat-undo-toast");
@@ -671,7 +672,7 @@ async function loadPromptLibrary() {
       promptLibraryEl.appendChild(renderPromptEntry(entry));
     }
   } catch (err) {
-    chatStatus.textContent = `Could not load prompt library: ${err}`;
+    chatStatus.textContent = `Could not load topic prompt history: ${err}`;
   }
 }
 
@@ -692,6 +693,15 @@ async function regenerateLast() {
   }
 }
 
+chatImageInput.addEventListener("change", () => {
+  const file = chatImageInput.files[0];
+  if (!file) {
+    chatImageFilename.textContent = "No file selected";
+    return;
+  }
+  chatImageFilename.textContent = file.name;
+});
+
 chatForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!selectedId) {
@@ -711,6 +721,7 @@ chatForm.addEventListener("submit", async (event) => {
   renderChat();
   chatInput.value = "";
   chatImageInput.value = "";
+  chatImageFilename.textContent = "No file selected";
   clearChatStatus("Waiting for response...");
 
   const ok = await streamAssistantReply(chatMessages.filter((m) => m.checked));

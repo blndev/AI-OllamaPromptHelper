@@ -7,19 +7,23 @@
 </head>
 <body>
   <header class="app-header">
-    <h1 id="app-title">AI Ollama Prompt Helper</h1>
-    <p class="app-header__hint"><span id="app-version">dev</span></p>
+    <div class="app-header__inner">
+      <h1 id="app-title">AI Ollama Prompt Helper</h1>
+      <span id="app-version">dev</span>
+    </div>
   </header>
 
   <main class="app-layout">
     <div class="app-main">
       <details id="preset-editor" class="card" open>
         <summary><h2 class="inline-summary">Presets<span id="preset-summary-name"></span></h2></summary>
-        <div class="row">
+        <div class="preset-toolbar row">
           <label for="preset-select">Preset</label>
           <select id="preset-select"></select>
-          <button id="preset-new" class="btn btn--secondary">New preset</button>
-          <button id="preset-duplicate" type="button" class="btn btn--secondary">Duplicate preset</button>
+          <div class="preset-actions">
+            <button id="preset-new" class="btn btn--secondary">New preset</button>
+            <button id="preset-duplicate" type="button" class="btn btn--secondary">Duplicate preset</button>
+          </div>
         </div>
 
         <form id="preset-form" class="form-grid">
@@ -81,11 +85,21 @@
           <pre id="debug-panel-body" class="debug-panel-body">No request sent yet.</pre>
         </details>
         <div id="chat-history"></div>
-        <form id="chat-form" class="row chat-input-row">
-          <textarea id="chat-input" rows="3" placeholder="Type your message... (Enter to send, Shift+Enter for a new line)" required></textarea>
-          <input type="file" id="chat-image-input" accept="image/*">
-          <button type="submit" class="btn btn--primary">Send</button>
-          <button type="button" id="chat-stop" class="btn btn--danger" style="display:none;">Stop</button>
+        <form id="chat-form" class="chat-input-row">
+          <div class="chat-upload-row">
+            <label class="file-picker" for="chat-image-input">
+              <span>Browse...</span>
+              <input type="file" id="chat-image-input" accept="image/*">
+            </label>
+            <span id="chat-image-filename" class="file-filename">No file selected</span>
+          </div>
+          <div class="chat-input-main">
+            <textarea id="chat-input" rows="3" placeholder="Type your message... (Enter to send, Shift+Enter for a new line)" required></textarea>
+            <div class="chat-input-actions">
+              <button type="submit" class="btn btn--primary">Send</button>
+              <button type="button" id="chat-stop" class="btn btn--danger" style="display:none;">Stop</button>
+            </div>
+          </div>
         </form>
         <p id="chat-status" class="status-text"></p>
         <div id="chat-undo-toast" class="toast" style="display:none;">
@@ -95,7 +109,7 @@
     </div>
 
     <aside id="prompt-library-section" class="card">
-      <h2>Prompt Library</h2>
+      <h2>Topic Prompt History</h2>
       <div id="prompt-library"></div>
     </aside>
   </main>
