@@ -1,0 +1,35 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    # Uncomment to enable GPU acceleration (requires NVIDIA Container Toolkit):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  app:
+    image: ghcr.io/blndev/ai-ollamaprompthelper:latest
+    container_name: ai-ollama-prompt-helper
+    restart: unless-stopped
+    depends_on:
+      - ollama
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./presets:/app/presets
+      - ./output:/app/output
+      - ./config.local.json:/app/config.local.json:ro
+    environment:
+      - TZ=Europe/Berlin
+
+volumes:
+  ollama-models:

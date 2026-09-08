@@ -3,6 +3,24 @@ Simple Web based UI which uses Ollama to support in Prompt generation
 
 Vibe Coded 
 
+## Features
+
+**AI-OllamaPromptHelper** turns your local [Ollama](https://ollama.com) instance into a full-blown **prompt engineering workshop** — chat your way to better prompts, then reuse them anywhere.
+
+* **Chat-based prompt workshop** — iteratively refine prompts for image, video and text generators through a natural conversation with your local LLM
+* **Fully editable presets** — switch, create and edit system prompt / model / tuning presets right from the UI, no config file editing required
+* **Multimodal input** — attach images to your messages for vision-capable models
+* **Visible "thinking"** — reasoning output is shown separately from the final answer when a model supports it
+* **Fine-grained context control** — check/uncheck individual messages to control exactly what's sent to the model, with a live context-size indicator
+* **Automatic prompt extraction** — recognized prompts are pulled out of the conversation and collected into per-topic Markdown libraries, ready to copy with one click
+* **Autosave & manual save/load** — never lose a chat session, with undo for accidental deletions
+* **Local-first & private** — everything runs on your machine (or your own server); no data leaves your network unless you point it at a remote Ollama instance
+* **Ready-to-run container image** — pull it from GHCR and get going with Docker/Podman/Docker Compose in minutes
+
+
+![AI-OllamaPromptHelper screenshot](assets/screenshot.png)
+
+
 ## Getting Started
 
 ### Prerequisites
@@ -11,8 +29,8 @@ Vibe Coded
 
 ### Download & Install
 ```powershell
-git clone <this-repository-url>
-cd AI-OllamaPromptHelper
+git clone https://github.com/blndev/ai-ollamaprompthelper.git
+cd ai-ollamaprompthelper
 
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -38,6 +56,11 @@ For local development, you can create a **`config.local.json`** next to `config.
 .\.venv\Scripts\Activate.ps1
 uvicorn app.main:app --reload
 ```
+On Linux/macOS, the equivalent [`run.sh`](run.sh) script can be used instead (after activating the virtual environment):
+```bash
+source .venv/bin/activate
+./run.sh
+```
 Then open **http://127.0.0.1:8000/** in your browser.
 
 ## Docker / Podman
@@ -51,13 +74,10 @@ Since `localhost` inside a container refers to the container itself, not your ho
 ### Pull the pre-built image from GitHub (GHCR)
 Every push to `main` (and tags/PRs, see below) is built by [`.github/workflows/docker-build.yml`](.github/workflows/docker-build.yml) and published to the GitHub Container Registry — no local build required:
 ```powershell
-docker pull ghcr.io/<owner>/<repo>:main
+docker pull ghcr.io/blndev/ai-ollamaprompthelper:latest
 # or a specific version tag, e.g.
-docker pull ghcr.io/<owner>/<repo>:v1.0.0
+docker pull ghcr.io/blndev/ai-ollamaprompthelper:v1.0.0
 ```
-Replace `<owner>/<repo>` with this repository's path in **lowercase** (GHCR requires lowercase image names). Available tags mirror the branch/tag pushed (`main`, `v*` semver tags) plus a `sha-<commit>` tag for every build — see the "Packages" section of the GitHub repository page for the full list.
-
-If the package is private, authenticate first: `docker login ghcr.io -u <your-github-username>` using a [personal access token](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) with `read:packages` scope (public packages need no login to pull). Then run it exactly as described under "Run the container" below, just replacing `ai-ollama-prompt-helper` with the pulled `ghcr.io/...` image name/tag.
 
 ### Build the image
 ```powershell
@@ -101,10 +121,61 @@ The `:Z` suffix relabels the volumes for SELinux (common on Fedora/RHEL); omit i
 
 Then open **http://localhost:8000/** in your browser. Container health can be checked at `/api/health` (also used by the image's built-in `HEALTHCHECK`).
 
+### Docker Compose (app + Ollama)
+A [`docker-compose.yml`](docker-compose.yml) is provided that starts both the app (pulled from GHCR) and an `ollama` container, with a named volume so pulled models persist across restarts.
+
+```powershell
+# 1. Create the local folders used by the app container
+mkdir presets, output -ErrorAction SilentlyContinue
+
+# 2. Point the app at the ollama service from the same compose network
+@'
+{ "ollamaUrl": "http://ollama:11434" }
+'@ | Set-Content config.local.json
+
+# 3. Start both containers
+docker compose up -d
+```
+On Linux/macOS the same steps apply with `mkdir -p presets output` and a heredoc/`echo` instead of the PowerShell snippet above.
+
+Once both containers are healthy, open **http://localhost:8000/** in your browser. Pull a model into the `ollama` container so it's available to the app, e.g.:
+```powershell
+docker compose exec ollama ollama pull llama3
+```
+Models are stored in the `ollama-models` named volume, so they survive `docker compose down` (use `docker compose down -v` to also remove them). GPU acceleration can be enabled by uncommenting the `deploy.resources` block for the `ollama` service in [`docker-compose.yml`](docker-compose.yml) (requires the NVIDIA Container Toolkit).
+
 ### CI: building the image automatically
 [`.github/workflows/docker-build.yml`](.github/workflows/docker-build.yml) runs the test suite and then builds the Docker image on every push/PR to `main`, pushing it to the GitHub Container Registry (`ghcr.io`) on non-PR events.
 
-# Requirements
+## Running Tests
+The project uses `pytest` with FastAPI's `TestClient`:
+```powershell
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pytest tests/ -v
+```
+The same test suite runs automatically in CI (see [`.github/workflows/docker-build.yml`](.github/workflows/docker-build.yml)) before an image is built/published.
+
+## Contributing
+Contributions, bug reports and feature ideas are welcome — please open an issue or pull request. Before submitting a PR:
+* Make sure `pytest tests/ -v` passes.
+* Keep changes focused and describe the motivation/behavior change in the PR description.
+* For larger changes, consider opening an issue first to discuss the approach.
+
+## License
+This project is licensed under the [MIT License](LICENSE).
+
+## Changelog
+
+### v1.1.0
+* Added `docker-compose.yml` to start the app together with an `ollama` container (with a named volume for pulled models).
+* Documented running the app via [`run.sh`](run.sh) on Linux/macOS.
+* Added Features, Running Tests, Contributing and License sections to the README.
+
+### v1.0.0
+* Initial release: chat-based prompt workshop with presets, multimodal input, thinking mode, chat history management and Markdown prompt extraction.
+
+# Core Requirements
 * easy to use
 * can simply be used in browser
 * uses ollama web api and langchain
@@ -134,7 +205,7 @@ Then open **http://localhost:8000/** in your browser. Container health can be ch
     * the markdown will have for each prompt
         short description, type of prompt (video, image, text), prompt text, section for feedback 
 
-# Detailed Requirements
+## Detailed Requirements
 
 > This section resolves ambiguities from the requirements above and documents the clarified, final scope. Assumptions are marked as such; everything else was confirmed by the user.
 
