@@ -11,6 +11,16 @@ let presets = [];
 let selectedId = null;
 // Sensible starting values for a new preset (README.md section 4: optional tuning fields).
 const DEFAULT_TUNING = { temperature: 0.8, top_p: 0.9, num_ctx: 4096 };
+// Shown via the "Insert example system prompt" button, pairs well with the
+// "Inject prompt template" checkbox (see README.md section 9).
+const EXAMPLE_SYSTEM_PROMPT =
+  "You are a creative assistant that helps the user brainstorm and refine prompts " +
+  "for AI image, video and text generators. Ask a clarifying question if the topic " +
+  "is vague, otherwise suggest 2-3 concrete prompt variations for the user's topic.";
+
+document.getElementById("preset-systemPrompt-example").addEventListener("click", () => {
+  fieldEl("systemPrompt").value = EXAMPLE_SYSTEM_PROMPT;
+});
 
 function setStatus(message, variant = null) {
   presetStatus.textContent = message;
@@ -39,7 +49,7 @@ function fillForm(preset) {
   fieldEl("name").value = preset?.name ?? "";
   fieldEl("systemPrompt").value = preset?.systemPrompt ?? "";
   fieldEl("thinking").checked = Boolean(preset?.thinking);
-  fieldEl("promptIdentifier").value = preset?.promptIdentifier ?? "";
+  fieldEl("injectPromptTemplate").checked = Boolean(preset?.injectPromptTemplate);
   fieldEl("temperature").value = preset?.temperature ?? DEFAULT_TUNING.temperature;
   fieldEl("top_p").value = preset?.top_p ?? DEFAULT_TUNING.top_p;
   fieldEl("num_ctx").value = preset?.num_ctx ?? DEFAULT_TUNING.num_ctx;
@@ -108,7 +118,7 @@ presetForm.addEventListener("submit", async (event) => {
     systemPrompt: fieldEl("systemPrompt").value,
     model: presetModel.value,
     thinking: fieldEl("thinking").checked,
-    promptIdentifier: fieldEl("promptIdentifier").value || null,
+    injectPromptTemplate: fieldEl("injectPromptTemplate").checked,
     temperature: fieldEl("temperature").value ? Number(fieldEl("temperature").value) : null,
     top_p: fieldEl("top_p").value ? Number(fieldEl("top_p").value) : null,
     num_ctx: fieldEl("num_ctx").value ? Number(fieldEl("num_ctx").value) : null,
@@ -446,7 +456,23 @@ function renderPromptEntry(entry) {
   const copyBtn = document.createElement("button");
   copyBtn.type = "button";
   copyBtn.textContent = "Copy";
-  copyBtn.addEventListener("click", () => navigator.clipboard.writeText(entry.prompt));
+  copyBtn.addEventListener("click", async () => {
+    const originalLabel = copyBtn.textContent;
+    // Visual feedback that the copy actually happened (or failed), since
+    // clipboard writes are otherwise silent/invisible to the user.
+    try {
+      await navigator.clipboard.writeText(entry.prompt);
+      copyBtn.textContent = "✅ Copied!";
+      copyBtn.classList.add("btn--copied");
+    } catch (err) {
+      copyBtn.textContent = "⚠ Copy failed";
+      copyBtn.classList.add("btn--copy-failed");
+    }
+    setTimeout(() => {
+      copyBtn.textContent = originalLabel;
+      copyBtn.classList.remove("btn--copied", "btn--copy-failed");
+    }, 1500);
+  });
 
   block.append(title, body, copyBtn);
   return block;

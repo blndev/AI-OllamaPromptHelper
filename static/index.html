@@ -23,12 +23,21 @@
 
         <form id="preset-form" class="form-grid">
           <label>Name <input type="text" id="preset-name" required></label>
-          <label>System prompt <textarea id="preset-systemPrompt" required></textarea></label>
+          <label>System prompt
+            <textarea id="preset-systemPrompt" rows="15" required></textarea>
+          </label>
+          <div class="row">
+            <button type="button" id="preset-systemPrompt-example" class="btn btn--secondary">Insert example system prompt</button>
+          </div>
           <label>Model <select id="preset-model"></select></label>
           <label class="checkbox-label"><input type="checkbox" id="preset-thinking"> Thinking</label>
           <small class="field-hint">Ask the model to show its reasoning separately from the final answer (only works if the selected model supports it).</small>
-          <label>Prompt identifier <input type="text" id="preset-promptIdentifier"></label>
-          <small class="field-hint">Optional marker. When set, the model is instructed to wrap generated prompt suggestions in markup so they can be extracted into the Markdown prompt library.</small>
+          <label class="checkbox-label"><input type="checkbox" id="preset-injectPromptTemplate"> Inject prompt template</label>
+          <small class="field-hint">
+            Turns on automatic prompt extraction — you do <strong>not</strong> need to write any special markup in the System prompt yourself. When checked, the app automatically appends an instruction like this to your System prompt behind the scenes:<br>
+            <code>Whenever you suggest a prompt for the user to reuse in another generative AI tool, wrap each suggestion in: &lt;prompt type="image" description="short description"&gt;prompt text&lt;/prompt&gt;</code><br>
+            So your System prompt can stay focused on the actual task, e.g. <em>"You are a creative assistant that helps brainstorm and refine prompts for AI image generators."</em> — leave unchecked to disable extraction for this preset.
+          </small>
           <label>Temperature <input type="number" step="0.1" min="0" max="2" id="preset-temperature"></label>
           <small class="field-hint">Randomness/creativity. Lower (e.g. 0.2) = focused and deterministic, higher (e.g. 1.5) = more varied. Range 0–2, default 0.8.</small>
           <label>top_p <input type="number" step="0.05" min="0" max="1" id="preset-top_p"></label>

@@ -25,9 +25,9 @@ class ChatReply(BaseModel):
     thinking: str | None = None
 
 
-# Appended to the system prompt when preset.promptIdentifier is set, instructing
-# the model to mark up prompt suggestions so the frontend/backend can extract
-# them into the Markdown library (see README.md section 9).
+# Appended to the system prompt when preset.injectPromptTemplate is True,
+# instructing the model to mark up prompt suggestions so the frontend/backend
+# can extract them into the Markdown library (see README.md section 9).
 PROMPT_MARKUP_INSTRUCTION = (
     "\n\nWhenever you suggest a prompt for the user to reuse in another generative "
     "AI tool, wrap each individual suggestion in this exact markup, one <prompt> "
@@ -39,8 +39,8 @@ PROMPT_MARKUP_INSTRUCTION = (
 
 def build_system_prompt(preset: Preset) -> str:
     """Return preset.systemPrompt, extended with the prompt-markup instruction
-    when the preset has a promptIdentifier configured."""
-    if preset.promptIdentifier:
+    when the preset has injectPromptTemplate enabled."""
+    if preset.injectPromptTemplate:
         return preset.systemPrompt + PROMPT_MARKUP_INSTRUCTION
     return preset.systemPrompt
 

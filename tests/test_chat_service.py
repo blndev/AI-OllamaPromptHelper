@@ -22,7 +22,7 @@ def _make_preset(**overrides) -> Preset:
         systemPrompt="You are a helpful assistant.",
         model="llama3",
         thinking=False,
-        promptIdentifier=None,
+        injectPromptTemplate=False,
         temperature=None,
         top_p=None,
         num_ctx=None,
@@ -38,6 +38,30 @@ def _make_config() -> AppConfig:
         presetFolder="presets",
         outputFolder="output",
     )
+
+
+class TestBuildSystemPrompt:
+    """Tests for the injectPromptTemplate -> markup-instruction behavior."""
+
+    def test_appends_markup_instruction_when_enabled(self):
+        """With injectPromptTemplate=True, the markup instruction is appended."""
+        from app.services.chat_service import PROMPT_MARKUP_INSTRUCTION, build_system_prompt
+
+        preset = _make_preset(systemPrompt="Base prompt.", injectPromptTemplate=True)
+
+        result = build_system_prompt(preset)
+
+        assert result == "Base prompt." + PROMPT_MARKUP_INSTRUCTION
+
+    def test_leaves_system_prompt_unchanged_when_disabled(self):
+        """With injectPromptTemplate=False (default), the system prompt is untouched."""
+        from app.services.chat_service import build_system_prompt
+
+        preset = _make_preset(systemPrompt="Base prompt.", injectPromptTemplate=False)
+
+        result = build_system_prompt(preset)
+
+        assert result == "Base prompt."
 
 
 class TestBuildMessages:

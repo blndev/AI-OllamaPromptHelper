@@ -11,7 +11,12 @@ class PresetIn(BaseModel):
     systemPrompt: str
     model: str
     thinking: bool = False
-    promptIdentifier: str | None = None
+    # When True, an instruction to wrap generated prompt suggestions in
+    # <prompt> markup is appended to the system prompt (see build_system_prompt
+    # in app/services/chat_service.py) so they can be extracted into the
+    # Markdown prompt library. This used to be a free-text "promptIdentifier"
+    # field, but only its truthiness was ever used, so it's a plain checkbox.
+    injectPromptTemplate: bool = False
     temperature: float | None = Field(default=None, ge=0, le=2)
     top_p: float | None = Field(default=None, ge=0, le=1)
     num_ctx: int | None = Field(default=None, gt=0)

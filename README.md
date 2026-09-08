@@ -158,13 +158,15 @@ A JSON configuration file provides:
 
 ## 4. Presets
 * Presets are loaded from JSON files in the configured preset folder.
-* Each preset defines: `systemPrompt`, `model`, `thinking` (bool), `promptIdentifier`, and LLM tuning parameters `temperature`, `top_p`, `num_ctx` (all optional, falling back to Ollama's defaults when not set).
+* Each preset defines: `systemPrompt`, `model`, `thinking` (bool), `injectPromptTemplate` (bool), and LLM tuning parameters `temperature`, `top_p`, `num_ctx` (all optional, falling back to Ollama's defaults when not set).
 * Presets are fully manageable from the UI: the user can select/switch presets via dropdown, edit existing presets, and create new presets.
 * Any change made in the UI (edit or create) is persisted back to the preset JSON file(s), not just kept for the current session.
 * The `model` field in the preset editor is filled from a dropdown of models auto-discovered from the Ollama instance (e.g. via its model-list endpoint) instead of free text entry, to avoid typos/invalid model names.
 * The tuning parameters (`temperature`, `top_p`, `num_ctx`) can additionally be overridden temporarily within an ongoing chat (e.g. via a collapsible "tuning" panel), without modifying the underlying preset file — the preset always remains the source of the default values.
 * Saving a preset (create or update) gives clear visual confirmation (e.g. a green, briefly highlighted status message), so it's obvious the save succeeded without having to guess.
 * The Presets area is collapsible; the name of the currently selected preset stays visible next to the section heading even while the section is collapsed.
+* The System prompt editor is at least 15 rows tall so multi-paragraph prompts stay readable while editing; an "Insert example system prompt" helper fills in a ready-to-use example.
+* The `injectPromptTemplate` field is a plain checkbox ("Inject prompt template"): when checked, the app automatically appends a ready-made extraction instruction to the system prompt behind the scenes — the user does not have to write the `<prompt>` markup instruction into their System prompt themselves. It was originally a free-text "prompt identifier" field, but only its truthiness was ever used, so a checkbox is clearer and less misleading than a text input.
 
 ## 5. Topic Field
 * The "Topic" is a free text field that can be changed at any point during an ongoing chat (not fixed once at session start).
@@ -190,14 +192,14 @@ A JSON configuration file provides:
 * When enabled, the model's "thinking" output is visually distinguished from the final response (e.g. separate/collapsible section, rendered in italics), not mixed into the same message bubble.
 
 ## 9. Prompt Extraction & Markdown Export
-* Detection mechanism: when a preset has a `promptIdentifier` configured, the system prompt instructs the model to wrap generated prompts in a defined, machine-parseable markup (e.g. a dedicated tag or fenced code block with a type attribute, such as `<prompt type="image">...</prompt>`). The UI parses the LLM response for this markup to detect prompts automatically.
+* Detection mechanism: when a preset has "Inject prompt template" (`injectPromptTemplate`) checked, the system prompt instructs the model to wrap generated prompts in a defined, machine-parseable markup (e.g. a dedicated tag or fenced code block with a type attribute, such as `<prompt type="image">...</prompt>`). The UI parses the LLM response for this markup to detect prompts automatically.
 * Prompt type (video/image/text): specified by the user, analogous to the topic field. The UI may offer a pre-selected default type (e.g. derived from the preset) which the user can change or extend.
 * Detected prompts are appended to the Markdown file for the currently active topic. Each entry contains:
   * short description
   * prompt type (video/image/text)
   * prompt text
   * an empty "Feedback" section — this is only a placeholder for later manual editing outside the tool; the application does not populate or manage feedback content itself.
-* Each extracted prompt entry (in the chat message and in the prompt library view) offers a one-click "copy to clipboard" action that copies the prompt text only (not description/type/feedback) for direct reuse in other tools.
+* Each extracted prompt entry (in the chat message and in the prompt library view) offers a one-click "copy to clipboard" action that copies the prompt text only (not description/type/feedback) for direct reuse in other tools, with visual confirmation (e.g. the button briefly changes to "✅ Copied!") so it's clear the copy actually happened.
 
 ## 10. Assumptions
 > **Assumption:** No specific persistence beyond flat JSON files (presets, config, chat history exports, Markdown output) is required — no database.
