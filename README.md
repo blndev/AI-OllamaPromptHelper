@@ -23,11 +23,62 @@ Vibe Coded
 
 ## Best Practices
 
-* **Attach an image only with a vision-capable model** — the image-prompt presets work from a plain text topic *and* from an attached image. If you want to attach one, first select a multimodal model (e.g. `qwen2.5vl`, `llava`, `gemma3`) in the preset. A text-only model silently ignores the image and will invent its content.
-* **Say in your own message what the reference image is for** — the presets deliberately don't guess. Write e.g. *"übernimm nur Farbpalette und Licht, das Motiv bleibt wie beschrieben"* or *"halte die Figur identisch, variiere nur die Umgebung"*. Without that, the model decides on its own how much of the image to carry over.
-* **The preset is a starting point, not a straitjacket** — you can steer it further in your own message at any time: *"nur eine Variante"*, *"alle drei im Hochformat"*, *"mach Variante 2 nochmal als Nachtszene"*. The system prompt sets the default behavior, your message overrides it.
-* **Match the preset to the target generator** — prompt style differs a lot between Krea 2, Qwen-Image, FLUX.1, Stable Diffusion and MiniMax H3. Using the wrong preset produces prompts that technically work but never exploit the generator's strengths (e.g. Qwen-Image's text rendering, FLUX.1's compositional adherence).
-* **Say what should be there, not what to avoid** — modern generators follow positive instructions far better than "no X". Negative prompts only make sense for the Stable Diffusion preset, because SD/SDXL genuinely supports them.
+* **Treat presets as suggestions** — adjust the system prompt, model and tuning settings to fit your workflow and desired result. The included presets are examples, not fixed rules. You can also use a preset for a different task by replacing its instructions.
+* **Choose a preset that fits the target generator** — prompt style differs between Krea 2, Qwen-Image, FLUX.1, Stable Diffusion and MiniMax H3. The wrong preset may work, but it will not use the target generator well.
+* **Describe the output format you need** — FLUX.1, Krea 2 and Qwen-Image create three image variants. LTX-2 and MiniMax H3 create one production prompt. You can ask for a different number of results or change what should vary. For example:
+  ```text
+  Create exactly three clearly different variants for the same scene.
+  Keep the subject, number of people and portrait orientation unchanged
+  in all variants. Vary only the camera angle, lighting and visual style.
+  Give each variant a short German description and one ready-to-use
+  image prompt in English.
+  ```
+* **Separate fixed requirements from creative details** — keep every clear user requirement in every result unless you limit it to one result. Let the model vary perspective, composition, light, materials or mood. Do not let it invent brands, people, logos or places. For example:
+  ```text
+  Create three variants of a red bicycle in front of an old brick wall.
+  Keep the red bicycle, brick wall, landscape orientation and morning
+  atmosphere in every variant. Vary only the focal length, camera
+  position, composition and character of the light. Invent no brand
+  and add no extra text.
+  ```
+* **Set the language for explanations and prompts separately** — the presets usually use German for the conversation and English for the image or video prompt. Tell the model to keep visible text, dialogue and names unchanged when needed. For example:
+  ```text
+  Answer in German. Write the short explanation and variant description
+  in German. Write the actual FLUX.1 image prompt in English. Preserve
+  the visible text "Sommermarkt am See" exactly as written.
+  ```
+* **Try a different workflow when the bundled presets do not fit** — the system prompt can define a different image or video task, such as one product image, a short tutorial animation or a technical illustration. For example:
+  ```text
+  You are an e-commerce product photographer. Turn the user's product
+  facts into one image prompt for a clean catalogue photo. Use a white
+  background, soft shadow and front-facing camera. Show the whole product
+  and keep its colours and shape accurate. Do not add a logo, label or
+  feature that the user did not provide. Return only the image prompt.
+  ```
+  ```text
+  You are a short-form tutorial video director. Turn the user's topic
+  into a 20-second vertical video with four clear shots that explain one
+  simple process. For each shot, give the action, camera movement, on-screen
+  text and duration. Use plain language and keep the same object and setting
+  across all shots. Return a compact shot list, not three creative variants.
+  ```
+  ```text
+  You create technical cutaway illustrations. Turn the user's description
+  into one image prompt for a labelled cross-section of the object. Show the
+  inside parts in their real positions, use a clean background and keep all
+  labels short and readable. Do not invent parts or labels. Return the image
+  prompt in English and a one-sentence explanation in German.
+  ```
+* **Say exactly what to take from a reference image** — specify whether to keep the identity, clothes, colours, light, composition or only one visual element. Use a vision-capable Ollama model and say what should change. For example:
+  ```text
+  Use the attached image as a reference for the same character.
+  Preserve the facial features, hairstyle, clothing and dark-red
+  colour palette. Change the environment, camera angle and lighting
+  in the three variants. Keep the character recognisable, but do not
+  identify or describe a real person.
+  ```
+* **Use images only with a vision-capable model** — select a multimodal model such as `qwen2.5vl`, `llava` or `gemma3` before you attach an image. A text-only model cannot inspect the image and may guess its content.
+* **Say what should be there, not only what to avoid** — image generators usually follow positive instructions better than phrases such as "no X". Negative prompts are mainly useful with the Stable Diffusion preset.
 * **Set the Topic before you generate** — the Topic field decides which Markdown file the extracted prompts land in. Change it whenever you switch subject so your prompt library stays sorted.
 * **Prune the context with the message checkboxes** — uncheck earlier turns once a direction is settled. It keeps the context small and fast, and stops the model from mixing abandoned ideas back in.
 
