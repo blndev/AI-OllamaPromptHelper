@@ -233,6 +233,7 @@ This project is licensed under the [MIT License](LICENSE).
 * Multiple images can now be attached to a single chat message (previously limited to one).
 * Images are attached via drag & drop only (the "Browse..." file picker was removed); each attached image shows as a thumbnail that can be removed individually before sending.
 * The preset editor panel is now collapsed by default on startup, and its header is styled to make expanding/collapsing it more discoverable.
+* Added the "Kreativ-Geschichten-Werkstatt" preset: an interactive co-writer that develops a story with the user turn by turn and derives standalone image/video/music prompt ideas from it after every passage.
 
 ### v1.1.0
 * Added `docker-compose.yml` to start the app together with an `ollama` container (with a named volume for pulled models).
