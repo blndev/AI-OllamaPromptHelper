@@ -238,6 +238,8 @@ This project is licensed under the [MIT License](LICENSE).
 * Hardened the Markdown prompt library parser (`read_library`) against manual edits: entries are now parsed per `---`-separated segment, so free-form notes, extra headings or code blocks added by hand between two entries no longer corrupt or swallow the following entry.
 * Clicking an attached image thumbnail in the chat history now opens it full-size in a lightbox overlay. Dropping image(s) now also works anywhere over the message input area, not just directly on the dropzone hint.
 * "Save history" now defaults to the name of the currently loaded/last-saved history, so pressing Enter/OK updates that same file instead of always requiring a new name — until "New chat" is clicked, which resets it back to asking for a fresh name.
+* Added a dark mode toggle in the header (persisted in the browser via `localStorage`, defaulting to the OS color-scheme preference).
+* Any chat message (user or assistant) can now be edited in place via a new "Edit" button. Editing a user message additionally offers "Save & Resend", which drops every message after it and asks the model for a fresh reply based on the edited text.
 
 ### v1.1.0
 * Added `docker-compose.yml` to start the app together with an `ollama` container (with a named volume for pulled models).

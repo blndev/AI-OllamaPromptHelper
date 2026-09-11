@@ -2,6 +2,35 @@
 // dropdown auto-discovered from /api/models (see README.md sections 4/5).
 console.log("AI Ollama Prompt Helper frontend loaded");
 
+// --- Dark mode: persisted in localStorage, defaults to the OS preference ---
+const THEME_STORAGE_KEY = "theme";
+const themeToggleButton = document.getElementById("theme-toggle");
+
+function applyTheme(theme) {
+  if (theme === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+    themeToggleButton.textContent = "☀️ Light mode";
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+    themeToggleButton.textContent = "🌙 Dark mode";
+  }
+}
+
+function initTheme() {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+  applyTheme(stored ?? (prefersDark ? "dark" : "light"));
+}
+
+themeToggleButton.addEventListener("click", () => {
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  const nextTheme = isDark ? "light" : "dark";
+  localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  applyTheme(nextTheme);
+});
+
+initTheme();
+
 const presetSelect = document.getElementById("preset-select");
 const presetModel = document.getElementById("preset-model");
 const presetForm = document.getElementById("preset-form");
@@ -492,20 +521,84 @@ function renderChat() {
     deleteBtn.textContent = "Delete";
     deleteBtn.addEventListener("click", () => deleteMessage(index));
 
-    const body = renderMessageText(message);
-    row.append(body);
+    if (message.editing) {
+      const textarea = document.createElement("textarea");
+      textarea.className = "chat-message-edit";
+      textarea.value = message.content;
+      row.append(textarea);
 
-    if (message.role === "assistant" && index === chatMessages.length - 1) {
-      const regenBtn = document.createElement("button");
-      regenBtn.type = "button";
-      regenBtn.textContent = "Regenerate";
-      regenBtn.addEventListener("click", regenerateLast);
-      row.append(regenBtn);
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button";
+      saveBtn.textContent = "Save";
+      saveBtn.addEventListener("click", () => saveEditedMessage(message, textarea.value, index, false));
+      row.append(saveBtn);
+
+      // Only a user message can be resent — resending an edited assistant
+      // reply would mean asking the model to answer itself.
+      if (message.role === "user") {
+        const saveResendBtn = document.createElement("button");
+        saveResendBtn.type = "button";
+        saveResendBtn.textContent = "Save & Resend";
+        saveResendBtn.addEventListener("click", () => saveEditedMessage(message, textarea.value, index, true));
+        row.append(saveResendBtn);
+      }
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.addEventListener("click", () => {
+        message.editing = false;
+        renderChat();
+      });
+      row.append(cancelBtn);
+    } else {
+      const body = renderMessageText(message);
+      row.append(body);
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.textContent = "Edit";
+      editBtn.addEventListener("click", () => {
+        message.editing = true;
+        renderChat();
+      });
+      row.append(editBtn);
+
+      if (message.role === "assistant" && index === chatMessages.length - 1) {
+        const regenBtn = document.createElement("button");
+        regenBtn.type = "button";
+        regenBtn.textContent = "Regenerate";
+        regenBtn.addEventListener("click", regenerateLast);
+        row.append(regenBtn);
+      }
     }
     row.append(deleteBtn);
     chatHistoryEl.appendChild(row);
   });
   updateContextIndicator();
+}
+
+// Saving an edit just updates the text in place. Saving-and-resending a user
+// message additionally drops every message after it (the conversation
+// branches from here) and immediately asks the model for a fresh reply.
+function saveEditedMessage(message, newContent, index, resend) {
+  message.content = newContent;
+  message.editing = false;
+  if (resend && message.role === "user") {
+    chatMessages = chatMessages.slice(0, index + 1);
+    renderChat();
+    triggerAutosave();
+    scrollChatHistoryToBottom();
+    clearChatStatus("Waiting for response...");
+    streamAssistantReply(chatMessages.filter((m) => m.checked)).then((ok) => {
+      if (ok) {
+        clearChatStatus();
+      }
+    });
+    return;
+  }
+  triggerAutosave();
+  renderChat();
 }
 
 function scrollChatHistoryToBottom() {
