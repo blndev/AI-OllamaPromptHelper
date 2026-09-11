@@ -90,51 +90,82 @@ Vibe Coded
 * [Ollama](https://ollama.com) installed and running locally (or reachable over the network), with at least one model pulled (e.g. `ollama pull llama3`)
 
 ### Download & Install
+
+**Windows (PowerShell):**
 ```powershell
 git clone https://github.com/blndev/ai-ollamaprompthelper.git
 cd ai-ollamaprompthelper
 
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-
-pip install -r requirements.txt
+.\.venv\Scripts\pip.exe install -r requirements.txt
 ```
 
+**Linux / macOS:**
+```bash
+git clone https://github.com/blndev/ai-ollamaprompthelper.git
+cd ai-ollamaprompthelper
+
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+*(No manual activation is required when invoking the virtual environment's executables directly).*
+
 ### Configure
-The app is configured via [`config.json`](config.json) in the project root:
+The app is configured via [config.json](config.json) in the project root:
 
 | Field | Required | Default | Description |
 |---|---|---|---|
-| `ollamaUrl` | yes | – | Base URL of the Ollama instance, e.g. `http://localhost:11434` |
+| `ollamaUrl` | yes | – | Base URL of the Ollama instance, e.g. `http://localhost:11434` (or `http://host.docker.internal:11434` for containers) |
 | `credentials` | no | `null` | Bearer token, only needed for a remote/secured Ollama instance |
 | `presetFolder` | yes | – | Folder where preset JSON files are stored, e.g. `./presets` |
 | `outputFolder` | yes | – | Folder for chat history exports and extracted prompt Markdown files, e.g. `./output` |
 | `debugMode` | no | `false` | When `true`, shows a "Request sent to Ollama" panel with the exact payload sent (see [Detailed Requirements § 3](#3-configuration-file)) |
 
-For local development, you can create a **`config.local.json`** next to `config.json` to override individual fields (e.g. `{"debugMode": true}`) without touching the committed file — it's git-ignored and only used on your machine.
+For local development or container overrides, you can create a **`config.local.json`** next to [config.json](config.json) to override individual fields (e.g. `{"ollamaUrl": "http://host.docker.internal:11434", "debugMode": true}`) without touching the committed file — it is git-ignored and overlaid automatically. You can also override the Ollama URL via the `OLLAMA_URL` environment variable.
 
 ### Run
+
+**Windows (PowerShell):**
 ```powershell
-.\.venv\Scripts\Activate.ps1
-uvicorn app.main:app --reload
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 ```
-On Linux/macOS, the equivalent [`run.sh`](run.sh) script can be used instead (after activating the virtual environment):
+
+**Linux / macOS / Git Bash:**
 ```bash
-source .venv/bin/activate
 ./run.sh
 ```
+*(The [run.sh](run.sh) script automatically detects and executes the virtual environment in `.venv` without needing `source .venv/bin/activate` beforehand).*
+
 Then open **http://127.0.0.1:8000/** in your browser.
 
 ## Docker / Podman
 
-A [`Dockerfile`](Dockerfile) is provided. It always forces `debugMode` to `false` in the image, regardless of the committed `config.json` value — enable debug mode for a container only via a mounted `config.local.json` (see below).
+A [Dockerfile](Dockerfile) is provided. It builds a lightweight container running Python 3.13, creating a non-root user `appuser` and enforcing `debugMode: false` in the base image.
 
 `presetFolder` (`./presets`) and `outputFolder` (`./output`) resolve inside the container's `/app` working directory, so mount them as volumes to persist presets and chat/prompt output across container restarts and rebuilds.
 
-Since `localhost` inside a container refers to the container itself, not your host machine, point `ollamaUrl` at your host's Ollama instance via a mounted `config.local.json` instead of editing the image's `config.json`.
+### Connecting the container to a local host Ollama server (non-container)
+
+When Ollama runs directly on your host machine (not in Docker), keep two crucial points in mind:
+
+1. **Host Network Binding (`OLLAMA_HOST`)**:
+   By default, Ollama on the host listens only on `127.0.0.1:11434`. Requests from inside a Docker container arrive via the Docker bridge network interface (e.g. `172.17.0.1`), not `127.0.0.1`. Therefore, the host Ollama server must be configured to bind to `0.0.0.0`:
+   * **Windows**: Set user/system environment variable `OLLAMA_HOST=0.0.0.0` and restart Ollama from the system tray.
+   * **Linux (systemd)**: Run `sudo systemctl edit ollama.service` and add:
+     ```ini
+     [Service]
+     Environment="OLLAMA_HOST=0.0.0.0"
+     ```
+     then run `sudo systemctl daemon-reload && sudo systemctl restart ollama`.
+   * **macOS**: Run `launchctl setenv OLLAMA_HOST "0.0.0.0"` and restart the Ollama app.
+
+2. **Container-to-Host Address (`host.docker.internal`)**:
+   Inside the container, point `ollamaUrl` to `http://host.docker.internal:11434` (via `config.local.json` or `-e OLLAMA_URL=http://host.docker.internal:11434`).
+   * On **Windows and macOS (Docker Desktop)**, `host.docker.internal` resolves automatically.
+   * On **Linux (Docker Engine / Podman)**, pass `--add-host=host.docker.internal:host-gateway` (or use `extra_hosts` in compose).
 
 ### Pull the pre-built image from GitHub (GHCR)
-Every push to `main` (and tags/PRs, see below) is built by [`.github/workflows/docker-build.yml`](.github/workflows/docker-build.yml) and published to the GitHub Container Registry — no local build required:
+Every push to `main` (and tags/PRs, see below) is built by [.github/workflows/docker-build.yml](.github/workflows/docker-build.yml) and published to the GitHub Container Registry — no local build required:
 ```powershell
 docker pull ghcr.io/blndev/ai-ollamaprompthelper:latest
 # or a specific version tag, e.g.
@@ -156,7 +187,7 @@ mkdir presets, output -ErrorAction SilentlyContinue
 '@ | Set-Content config.local.json
 ```
 
-### Run the container
+### Run the container against host Ollama
 
 **Docker (Windows/macOS/Linux):**
 ```powershell
@@ -168,6 +199,7 @@ docker run -d --name ai-ollama-prompt-helper `
   --add-host=host.docker.internal:host-gateway `
   ai-ollama-prompt-helper
 ```
+*(Alternatively, you can pass `-e OLLAMA_URL=http://host.docker.internal:11434` instead of mounting `config.local.json`).*
 
 **Podman (Linux, rootless):**
 ```bash
@@ -184,7 +216,7 @@ The `:Z` suffix relabels the volumes for SELinux (common on Fedora/RHEL); omit i
 Then open **http://localhost:8000/** in your browser. Container health can be checked at `/api/health` (also used by the image's built-in `HEALTHCHECK`).
 
 ### Docker Compose (app + Ollama)
-A [`docker-compose.yml`](docker-compose.yml) is provided that starts both the app (pulled from GHCR) and an `ollama` container, with a named volume so pulled models persist across restarts.
+A [docker-compose.yml](docker-compose.yml) is provided that starts both the app (pulled from GHCR) and an `ollama` container, with a named volume so pulled models persist across restarts.
 
 ```powershell
 # 1. Create the local folders used by the app container
@@ -204,18 +236,26 @@ Once both containers are healthy, open **http://localhost:8000/** in your browse
 ```powershell
 docker compose exec ollama ollama pull llama3
 ```
-Models are stored in the `ollama-models` named volume, so they survive `docker compose down` (use `docker compose down -v` to also remove them). GPU acceleration can be enabled by uncommenting the `deploy.resources` block for the `ollama` service in [`docker-compose.yml`](docker-compose.yml) (requires the NVIDIA Container Toolkit).
+Models are stored in the `ollama-models` named volume, so they survive `docker compose down` (use `docker compose down -v` to also remove them). GPU acceleration can be enabled by uncommenting the `deploy.resources` block for the `ollama` service in [docker-compose.yml](docker-compose.yml) (requires the NVIDIA Container Toolkit).
 
 ### CI: building the image automatically
-[`.github/workflows/docker-build.yml`](.github/workflows/docker-build.yml) runs the test suite and then builds the Docker image on every push/PR to `main`, pushing it to the GitHub Container Registry (`ghcr.io`) on non-PR events.
+[.github/workflows/docker-build.yml](.github/workflows/docker-build.yml) runs the test suite and then builds the Docker image on every push/PR to `main`, pushing it to the GitHub Container Registry (`ghcr.io`) on non-PR events.
 
 ## Running Tests
 The project uses `pytest` with FastAPI's `TestClient`:
+
+**Windows (PowerShell):**
 ```powershell
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-pytest tests/ -v
+.\.venv\Scripts\python.exe -m pytest tests/ -v
 ```
+
+**Linux / macOS:**
+```bash
+.venv/bin/python -m pytest tests/ -v
+# or
+.venv/bin/pytest tests/ -v
+```
+The same test suite runs automatically in CI (see [.github/workflows/docker-build.yml](.github/workflows/docker-build.yml)) before an image is built/published.
 The same test suite runs automatically in CI (see [`.github/workflows/docker-build.yml`](.github/workflows/docker-build.yml)) before an image is built/published.
 
 ## Contributing

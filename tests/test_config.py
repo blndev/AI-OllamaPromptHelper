@@ -98,6 +98,29 @@ class TestLoadConfigLocalOverride:
 
         assert config.ollamaUrl == "http://my-dev-box:11434"
         assert config.debugMode is True
+
+    def test_env_ollama_url_overrides_config(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """OLLAMA_URL env var overrides ollamaUrl from config.json."""
+        config_path = tmp_path / "config.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "ollamaUrl": "http://localhost:11434",
+                    "credentials": None,
+                    "presetFolder": str(tmp_path / "presets"),
+                    "outputFolder": str(tmp_path / "output"),
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("OLLAMA_URL", "http://host.docker.internal:11434")
+
+        config = load_config(config_path)
+
+        assert config.ollamaUrl == "http://host.docker.internal:11434"
+
         assert config.presetFolder == str(tmp_path / "presets")
 
     def test_missing_local_override_is_not_an_error(self, tmp_path: Path):

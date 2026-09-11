@@ -17,10 +17,11 @@ Guidance for AI coding agents working in this repository. See [README.md](README
 ## Running things
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-pytest tests/ -v          # full test suite (also what CI runs, via `pytest -q`)
-uvicorn app.main:app --reload   # run the app locally at http://127.0.0.1:8000/
+.\.venv\Scripts\pip.exe install -r requirements.txt
+.\.venv\Scripts\python.exe -m pytest tests/ -v          # full test suite (also what CI runs, via `pytest -q`)
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload   # run the app locally at http://127.0.0.1:8000/
+# or on Linux/macOS / Git Bash:
+./run.sh
 ```
 
 There is **no linter/formatter configured** in this repo (no `.flake8`, no `ruff`/`black` config) — do not assume one exists. CI (`.github/workflows/docker-build.yml`) only runs `pytest -q` before building the Docker image.

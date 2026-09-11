@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -56,6 +57,11 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> AppConfig:
                 f"Local config override is not valid JSON: {local_path.resolve()} ({exc})"
             ) from exc
         raw = {**raw, **local_raw}
+
+    # Optional environment variable override (for container deployments)
+    env_ollama_url = os.getenv("OLLAMA_URL")
+    if env_ollama_url and env_ollama_url.strip():
+        raw["ollamaUrl"] = env_ollama_url.strip()
 
     try:
         config = AppConfig(**raw)
