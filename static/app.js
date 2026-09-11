@@ -290,6 +290,34 @@ chatStopButton.addEventListener("click", () => {
   activeStreamController?.abort();
 });
 
+// --- Image lightbox: click a chat thumbnail to view it full-size ---
+const imageLightbox = document.getElementById("image-lightbox");
+const imageLightboxImg = document.getElementById("image-lightbox-img");
+const imageLightboxClose = document.getElementById("image-lightbox-close");
+
+function openImageLightbox(src) {
+  imageLightboxImg.src = src;
+  imageLightbox.style.display = "flex";
+}
+
+function closeImageLightbox() {
+  imageLightbox.style.display = "none";
+  imageLightboxImg.src = "";
+}
+
+imageLightboxClose.addEventListener("click", closeImageLightbox);
+// Clicking the dark backdrop closes it too, but not clicking the image itself.
+imageLightbox.addEventListener("click", (event) => {
+  if (event.target === imageLightbox) {
+    closeImageLightbox();
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && imageLightbox.style.display !== "none") {
+    closeImageLightbox();
+  }
+});
+
 // Errors (e.g. "LLM unreachable") stay visible until the next successful
 // action, instead of being wiped out by the "" reset right after the call.
 function setChatError(message) {
@@ -307,6 +335,10 @@ let nextMessageId = 1;
 let lastDeleted = null; // { message, index }
 let undoTimer = null;
 let lastAutosaveAt = null;
+// Name of the saved history currently loaded (via "Load"), so "Save history"
+// can default to updating it instead of always asking for a brand new name.
+// Reset by "New chat" since that starts an unsaved conversation again.
+let currentHistoryName = null;
 
 function updateContextIndicator() {
   const included = chatMessages.filter((m) => m.checked);
@@ -443,6 +475,7 @@ function renderChat() {
         const thumb = document.createElement("img");
         thumb.src = image;
         thumb.className = "chat-image-thumb";
+        thumb.addEventListener("click", () => openImageLightbox(image));
         row.append(thumb);
       }
     }
@@ -774,9 +807,11 @@ async function addDroppedImageFiles(files) {
   renderSelectedImages();
 }
 
-// Drag & drop is the only way to attach images, so it supports any number of files at once.
+// Drag & drop is the only way to attach images, so it supports any number of
+// files at once, and works when dropping anywhere on the chat form (including
+// over the message textarea), not just directly on the dropzone hint.
 ["dragenter", "dragover"].forEach((eventName) => {
-  chatImageDropzone.addEventListener(eventName, (event) => {
+  chatForm.addEventListener(eventName, (event) => {
     event.preventDefault();
     event.stopPropagation();
     chatImageDropzone.classList.add("chat-image-dropzone--active");
@@ -784,14 +819,14 @@ async function addDroppedImageFiles(files) {
 });
 
 ["dragleave", "dragend", "drop"].forEach((eventName) => {
-  chatImageDropzone.addEventListener(eventName, (event) => {
+  chatForm.addEventListener(eventName, (event) => {
     event.preventDefault();
     event.stopPropagation();
     chatImageDropzone.classList.remove("chat-image-dropzone--active");
   });
 });
 
-chatImageDropzone.addEventListener("drop", (event) => {
+chatForm.addEventListener("drop", (event) => {
   addDroppedImageFiles(event.dataTransfer?.files ?? []);
 });
 
@@ -928,11 +963,13 @@ chatNewButton.addEventListener("click", () => {
   // Clear the load-history selection too, otherwise it still points at the
   // previously loaded/saved chat even though the conversation was reset.
   chatHistorySelect.value = "";
+  // A fresh conversation is no longer tied to the previously loaded save.
+  currentHistoryName = null;
   renderChat();
 });
 
 chatSaveButton.addEventListener("click", async () => {
-  const name = window.prompt("Save chat history as:");
+  const name = window.prompt("Save chat history as:", currentHistoryName ?? "");
   if (!name) {
     return;
   }
@@ -948,6 +985,7 @@ chatSaveButton.addEventListener("click", async () => {
       return;
     }
     const saved = await response.json();
+    currentHistoryName = saved.name;
     chatStatus.textContent = `Saved chat history as '${saved.name}'.`;
     await loadHistoryNames();
   } catch (err) {
@@ -969,6 +1007,7 @@ chatLoadButton.addEventListener("click", async () => {
     }
     const history = await response.json();
     applyHistory(history);
+    currentHistoryName = name;
     await loadPromptLibrary();
     chatStatus.textContent = `Loaded '${name}' (${history.messages?.length ?? 0} messages).`;
   } catch (err) {

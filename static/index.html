@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>AI Ollama Prompt Helper</title>
-  <link rel="stylesheet" href="/style.css?v=6">
+  <link rel="stylesheet" href="/style.css?v=7">
 </head>
 <body>
   <header class="app-header">
@@ -109,6 +109,11 @@
     </aside>
   </main>
 
-  <script src="/app.js?v=14"></script>
+  <div id="image-lightbox" class="image-lightbox" style="display:none;">
+    <button type="button" id="image-lightbox-close" class="image-lightbox__close" aria-label="Close">&times;</button>
+    <img id="image-lightbox-img" src="" alt="Full-size attached image">
+  </div>
+
+  <script src="/app.js?v=16"></script>
 </body>
 </html>

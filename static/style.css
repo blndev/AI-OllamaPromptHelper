@@ -507,6 +507,49 @@ textarea {
   max-height: 120px;
   border-radius: 6px;
   display: block;
+  cursor: zoom-in;
+  transition: opacity 0.15s ease;
+}
+
+.chat-image-thumb:hover {
+  opacity: 0.85;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.85);
+  cursor: zoom-out;
+}
+
+.image-lightbox img {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.image-lightbox__close {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.image-lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .prompt-entry {

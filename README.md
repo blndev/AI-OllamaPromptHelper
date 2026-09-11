@@ -236,6 +236,8 @@ This project is licensed under the [MIT License](LICENSE).
 * Added the "Kreativ-Geschichten-Werkstatt" preset: an interactive co-writer that develops a story with the user turn by turn and derives standalone image/video/music prompt ideas from it after every passage.
 * The Topic field now offers existing topics (from prior prompt extractions) as autocomplete suggestions via a new `GET /api/prompts/topics` endpoint, instead of always starting from a blank field.
 * Hardened the Markdown prompt library parser (`read_library`) against manual edits: entries are now parsed per `---`-separated segment, so free-form notes, extra headings or code blocks added by hand between two entries no longer corrupt or swallow the following entry.
+* Clicking an attached image thumbnail in the chat history now opens it full-size in a lightbox overlay. Dropping image(s) now also works anywhere over the message input area, not just directly on the dropzone hint.
+* "Save history" now defaults to the name of the currently loaded/last-saved history, so pressing Enter/OK updates that same file instead of always requiring a new name — until "New chat" is clicked, which resets it back to asking for a fresh name.
 
 ### v1.1.0
 * Added `docker-compose.yml` to start the app together with an `ollama` container (with a named volume for pulled models).
