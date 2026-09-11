@@ -6,6 +6,7 @@ from pathlib import Path
 from app.services.markdown_exporter import (
     ExtractedPrompt,
     export_prompts,
+    list_topics,
     parse_prompts,
     read_library,
     slugify_topic,
@@ -159,3 +160,22 @@ class TestPathTraversalSafety:
         # named "evil.md" two directories above it).
         escaped_path = tmp_path.parent.parent / "evil.md"
         assert not escaped_path.exists()
+
+
+class TestListTopics:
+    def test_returns_topic_names_from_heading_sorted_case_insensitively(self, tmp_path: Path):
+        export_prompts(str(tmp_path), "Zebra Crossing", [ExtractedPrompt(type="image", description="D", prompt="P")])
+        export_prompts(str(tmp_path), "apple Orchard", [ExtractedPrompt(type="image", description="D", prompt="P")])
+
+        assert list_topics(str(tmp_path)) == ["apple Orchard", "Zebra Crossing"]
+
+    def test_returns_empty_list_when_output_folder_missing(self, tmp_path: Path):
+        assert list_topics(str(tmp_path / "does-not-exist")) == []
+
+    def test_ignores_chats_subfolder(self, tmp_path: Path):
+        export_prompts(str(tmp_path), "Real Topic", [ExtractedPrompt(type="image", description="D", prompt="P")])
+        chats_dir = tmp_path / "chats"
+        chats_dir.mkdir()
+        (chats_dir / "not-a-topic.md").write_text("# Not A Topic\n", encoding="utf-8")
+
+        assert list_topics(str(tmp_path)) == ["Real Topic"]

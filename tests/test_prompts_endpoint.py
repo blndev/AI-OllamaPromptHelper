@@ -79,3 +79,20 @@ class TestLibraryEndpoint:
 
         assert response.status_code == 200
         assert response.json()["entries"] == []
+
+
+class TestTopicsEndpoint:
+    def test_topics_returns_previously_extracted_topic_names(self, isolated_output_folder: Path):
+        text = '<prompt type="image" description="A castle">A castle on a hill</prompt>'
+        client.post("/api/prompts/extract", json={"topic": "Fantasy Landscapes", "text": text})
+
+        response = client.get("/api/prompts/topics")
+
+        assert response.status_code == 200
+        assert response.json()["topics"] == ["Fantasy Landscapes"]
+
+    def test_topics_returns_empty_list_when_none_extracted_yet(self, isolated_output_folder: Path):
+        response = client.get("/api/prompts/topics")
+
+        assert response.status_code == 200
+        assert response.json()["topics"] == []

@@ -163,3 +163,19 @@ def read_library(output_folder: str, topic: str) -> list[ExtractedPrompt]:
         )
         for match in _ENTRY_RE.finditer(content)
     ]
+
+
+def list_topics(output_folder: str) -> list[str]:
+    """Return the topic names of every existing Markdown library, read from
+    each file's '# <topic>' heading (the slug alone would lose casing/spacing).
+    Chat histories live under <outputFolder>/chats/, so a non-recursive glob
+    here never picks those up. Sorted case-insensitively for a stable order."""
+    base = Path(output_folder)
+    if not base.is_dir():
+        return []
+    topics: list[str] = []
+    for file in base.glob("*.md"):
+        first_line = file.read_text(encoding="utf-8").splitlines()[:1]
+        if first_line and first_line[0].startswith("# "):
+            topics.append(first_line[0][2:].strip())
+    return sorted(topics, key=str.casefold)

@@ -235,10 +235,31 @@ async function applyServerFeatureFlags() {
   }
 }
 
+const topicSuggestionsEl = document.getElementById("topic-suggestions");
+
+async function loadTopicSuggestions() {
+  try {
+    const response = await fetch("/api/prompts/topics");
+    if (!response.ok) {
+      return;
+    }
+    const data = await response.json();
+    topicSuggestionsEl.innerHTML = "";
+    for (const topic of data.topics ?? []) {
+      const option = document.createElement("option");
+      option.value = topic;
+      topicSuggestionsEl.appendChild(option);
+    }
+  } catch (err) {
+    // Non-fatal: the topic field just stays a plain free-text input.
+    console.warn("Could not load topic suggestions", err);
+  }
+}
+
 (async function init() {
   // Run in parallel: an unreachable Ollama instance can take several
   // seconds to time out, and must not block the preset list from loading.
-  await Promise.all([loadModels(), loadPresets(), applyServerFeatureFlags()]);
+  await Promise.all([loadModels(), loadPresets(), applyServerFeatureFlags(), loadTopicSuggestions()]);
 })();
 
 // --- Chat (Phase 5/6: streaming, checkboxes, undo, regenerate, images, thinking, tuning) ---
@@ -670,6 +691,7 @@ async function extractPrompts(assistantMessage) {
     renderChat();
     if (assistantMessage.extractedPrompts.length > 0) {
       await loadPromptLibrary();
+      await loadTopicSuggestions();
     }
   } catch (err) {
     chatStatus.textContent = `Prompt extraction failed: ${err}`;

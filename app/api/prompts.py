@@ -3,7 +3,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.config import load_config
-from app.services.markdown_exporter import ExtractedPrompt, export_prompts, parse_prompts, read_library
+from app.services.markdown_exporter import (
+    ExtractedPrompt,
+    export_prompts,
+    list_topics,
+    parse_prompts,
+    read_library,
+)
 
 router = APIRouter()
 
@@ -19,6 +25,10 @@ class ExtractResponse(BaseModel):
 
 class LibraryResponse(BaseModel):
     entries: list[ExtractedPrompt]
+
+
+class TopicsResponse(BaseModel):
+    topics: list[str]
 
 
 @router.post("/api/prompts/extract", response_model=ExtractResponse)
@@ -41,3 +51,9 @@ def get_library(topic: str) -> LibraryResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid topic") from exc
     return LibraryResponse(entries=entries)
+
+
+@router.get("/api/prompts/topics", response_model=TopicsResponse)
+def get_topics() -> TopicsResponse:
+    config = load_config()
+    return TopicsResponse(topics=list_topics(config.outputFolder))
