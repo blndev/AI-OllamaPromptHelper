@@ -46,13 +46,19 @@ _DESCRIPTION_ATTR_RE = re.compile(_ATTR_RE_TEMPLATE.format(name="description"), 
 _SLUG_INVALID_RE = re.compile(r"[^a-z0-9]+")
 _MAX_SLUG_LENGTH = 80
 
+# Entries are separated by a "---" line (see _render_entry). Splitting on
+# that first, then matching each segment independently, means a broken or
+# manually-edited segment is simply skipped instead of its leftover text
+# bleeding into the next real entry (which a single file-wide regex would do,
+# since its non-greedy "description" group would just keep expanding until it
+# found the next "**Type:**" anywhere in the file).
+_SEPARATOR_RE = re.compile(r"^-{3,}\s*$", re.MULTILINE)
 _ENTRY_RE = re.compile(
     r"^## (?P<description>.+?)\n\n"
-    r"\*\*Type:\*\* (?P<type>\S+)\n\n"
+    r"\*\*Type:\*\*\s*(?P<type>\S+)\n\n"
     r"(?P<fence>`{3,})text\n"
     r"(?P<prompt>.*?)\n"
-    r"(?P=fence)\n\n"
-    r"## Feedback\n",
+    r"(?P=fence)\n",
     re.MULTILINE | re.DOTALL,
 )
 
@@ -150,19 +156,32 @@ def export_prompts(output_folder: str, topic: str, prompts: list[ExtractedPrompt
 
 def read_library(output_folder: str, topic: str) -> list[ExtractedPrompt]:
     """Read back the entries previously written by export_prompts for topic.
-    Returns an empty list if no library file exists yet for this topic."""
+    Returns an empty list if no library file exists yet for this topic.
+
+    Robust against manual edits: the file is first split into segments on
+    each "---" separator line, then each segment is searched independently
+    for one "## description" / "**Type:**" / fenced prompt block. A segment
+    that does not contain a well-formed entry (e.g. free-form notes someone
+    typed into the Feedback section) is silently skipped, and parsing simply
+    resumes at the next "---"-delimited segment instead of corrupting or
+    swallowing the following real entry."""
     path = _library_path(output_folder, topic)
     if not path.exists():
         return []
     content = path.read_text(encoding="utf-8")
-    return [
-        ExtractedPrompt(
-            type=match.group("type"),
-            description=match.group("description"),
-            prompt=match.group("prompt"),
+    entries = []
+    for segment in _SEPARATOR_RE.split(content):
+        match = _ENTRY_RE.search(segment)
+        if not match:
+            continue
+        entries.append(
+            ExtractedPrompt(
+                type=match.group("type"),
+                description=match.group("description").strip(),
+                prompt=match.group("prompt"),
+            )
         )
-        for match in _ENTRY_RE.finditer(content)
-    ]
+    return entries
 
 
 def list_topics(output_folder: str) -> list[str]:

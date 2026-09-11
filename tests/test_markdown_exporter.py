@@ -136,6 +136,54 @@ class TestExportAndReadLibraryRoundTrip:
 
         assert [e.description for e in entries] == ["One", "Two"]
 
+    def test_manual_notes_in_feedback_section_do_not_corrupt_the_next_entry(self, tmp_path: Path):
+        """Free-form text (even with its own "##" headings and code fences)
+        added between two entries must not bleed into the following entry,
+        as long as it stays before that entry's "---" separator."""
+        export_prompts(
+            str(tmp_path),
+            "Topic",
+            [
+                ExtractedPrompt(type="image", description="One", prompt="P1"),
+                ExtractedPrompt(type="video", description="Two", prompt="P2"),
+            ],
+        )
+        path = tmp_path / "topic.md"
+        content = path.read_text(encoding="utf-8")
+        corrupted = content.replace(
+            "<!-- Add feedback here manually. -->\n\n---\n\n## Two",
+            "<!-- Add feedback here manually. -->\n\n"
+            "Not sure if this matters.\n## random note\n\nhaha\n```text\n\nblah\n```\n\n## nope\n\n"
+            "---\n\n## Two",
+            1,
+        )
+        path.write_text(corrupted, encoding="utf-8")
+
+        entries = read_library(str(tmp_path), "Topic")
+
+        assert [e.description for e in entries] == ["One", "Two"]
+        assert [e.prompt for e in entries] == ["P1", "P2"]
+
+    def test_unrecoverable_segment_is_skipped_not_fatal(self, tmp_path: Path):
+        """A segment with no recognizable entry at all (e.g. the user deleted
+        the Type line) is skipped instead of raising or corrupting neighbors."""
+        export_prompts(
+            str(tmp_path),
+            "Topic",
+            [
+                ExtractedPrompt(type="image", description="One", prompt="P1"),
+                ExtractedPrompt(type="video", description="Two", prompt="P2"),
+            ],
+        )
+        path = tmp_path / "topic.md"
+        content = path.read_text(encoding="utf-8")
+        corrupted = content.replace("**Type:** image\n\n", "", 1)
+        path.write_text(corrupted, encoding="utf-8")
+
+        entries = read_library(str(tmp_path), "Topic")
+
+        assert [e.description for e in entries] == ["Two"]
+
 
 class TestPathTraversalSafety:
     def test_export_and_read_with_malicious_topic_stay_inside_output_folder(self, tmp_path: Path):

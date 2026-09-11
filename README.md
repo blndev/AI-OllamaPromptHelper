@@ -235,6 +235,7 @@ This project is licensed under the [MIT License](LICENSE).
 * The preset editor panel is now collapsed by default on startup, and its header is styled to make expanding/collapsing it more discoverable.
 * Added the "Kreativ-Geschichten-Werkstatt" preset: an interactive co-writer that develops a story with the user turn by turn and derives standalone image/video/music prompt ideas from it after every passage.
 * The Topic field now offers existing topics (from prior prompt extractions) as autocomplete suggestions via a new `GET /api/prompts/topics` endpoint, instead of always starting from a blank field.
+* Hardened the Markdown prompt library parser (`read_library`) against manual edits: entries are now parsed per `---`-separated segment, so free-form notes, extra headings or code blocks added by hand between two entries no longer corrupt or swallow the following entry.
 
 ### v1.1.0
 * Added `docker-compose.yml` to start the app together with an `ollama` container (with a named volume for pulled models).
