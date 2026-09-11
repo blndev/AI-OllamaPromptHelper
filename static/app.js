@@ -289,10 +289,15 @@ let lastAutosaveAt = null;
 
 function updateContextIndicator() {
   const included = chatMessages.filter((m) => m.checked);
-  const approxTokens = Math.round(
-    included.reduce((sum, m) => sum + m.content.length, 0) / 4
-  );
-  contextIndicator.textContent = `${included.length} msgs · ~${approxTokens} tokens in context`;
+  // Rough only: actual image token cost depends on the model's vision
+  // encoder/resolution and can be far higher than this estimate.
+  const IMAGE_TOKEN_ESTIMATE = 768;
+  const textTokens = included.reduce((sum, m) => sum + m.content.length, 0) / 4;
+  const imageTokens = included.reduce((sum, m) => sum + (m.images?.length ?? 0), 0) * IMAGE_TOKEN_ESTIMATE;
+  const approxTokens = Math.round(textTokens + imageTokens);
+  const imageCount = included.reduce((sum, m) => sum + (m.images?.length ?? 0), 0);
+  const imageNote = imageCount > 0 ? ` (incl. ${imageCount} image${imageCount === 1 ? "" : "s"}, rough estimate)` : "";
+  contextIndicator.textContent = `${included.length} msgs · ~${approxTokens} tokens in context${imageNote}`;
 }
 
 function readFileAsBase64(file) {
