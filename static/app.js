@@ -248,6 +248,7 @@ const chatInput = document.getElementById("chat-input");
 const chatImageInput = document.getElementById("chat-image-input");
 const chatImageFilename = document.getElementById("chat-image-filename");
 const chatImageRemove = document.getElementById("chat-image-remove");
+const chatImageDropzone = document.getElementById("chat-image-dropzone");
 const chatStatus = document.getElementById("chat-status");
 const contextIndicator = document.getElementById("chat-context-indicator");
 const undoToast = document.getElementById("chat-undo-toast");
@@ -718,6 +719,34 @@ chatImageInput.addEventListener("change", () => {
 });
 
 chatImageRemove.addEventListener("click", resetImageSelection);
+
+// Drag & drop support alongside the "Browse..." button.
+["dragenter", "dragover"].forEach((eventName) => {
+  chatImageDropzone.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    chatImageDropzone.classList.add("chat-image-dropzone--active");
+  });
+});
+
+["dragleave", "dragend", "drop"].forEach((eventName) => {
+  chatImageDropzone.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    chatImageDropzone.classList.remove("chat-image-dropzone--active");
+  });
+});
+
+chatImageDropzone.addEventListener("drop", (event) => {
+  const file = [...(event.dataTransfer?.files ?? [])].find((f) => f.type.startsWith("image/"));
+  if (!file) {
+    setChatError("Only image files can be dropped here.");
+    return;
+  }
+  chatImageInput.files = event.dataTransfer.files;
+  chatImageFilename.textContent = file.name;
+  chatImageRemove.disabled = false;
+});
 
 chatForm.addEventListener("submit", async (event) => {
   event.preventDefault();

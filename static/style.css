@@ -91,6 +91,18 @@ body {
 details.card summary {
   cursor: pointer;
   list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  margin: -0.4rem -0.6rem 0;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.12);
+  transition: background-color 0.15s ease;
+}
+
+details.card summary:hover {
+  background: rgba(148, 163, 184, 0.25);
 }
 
 details.card summary::-webkit-details-marker {
@@ -102,10 +114,17 @@ details.card summary::before {
   display: inline-block;
   margin-right: 0.4rem;
   color: var(--muted);
+  font-size: 1.1rem;
 }
 
 details.card[open] summary::before {
   content: "\25be";
+}
+
+.summary-toggle-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 400;
 }
 
 .inline-summary {
@@ -385,6 +404,23 @@ textarea {
   font-weight: 400;
   color: var(--muted);
   font-size: 0.85em;
+}
+
+#chat-image-dropzone {
+  border: 1px dashed rgba(148, 163, 184, 0.5);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+#chat-image-dropzone.chat-image-dropzone--active {
+  border-color: var(--primary, #2563eb);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.file-drop-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 
 .chat-message-failed {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>AI Ollama Prompt Helper</title>
-  <link rel="stylesheet" href="/style.css?v=4">
+  <link rel="stylesheet" href="/style.css?v=5">
 </head>
 <body>
   <header class="app-header">
@@ -15,8 +15,11 @@
 
   <main class="app-layout">
     <div class="app-main">
-      <details id="preset-editor" class="card" open>
-        <summary><h2 class="inline-summary">Presets<span id="preset-summary-name"></span></h2></summary>
+      <details id="preset-editor" class="card">
+        <summary>
+          <h2 class="inline-summary">Presets<span id="preset-summary-name"></span></h2>
+          <span class="summary-toggle-hint">Click to show/hide</span>
+        </summary>
         <div class="preset-toolbar row">
           <label for="preset-select">Preset</label>
           <select id="preset-select"></select>
@@ -80,13 +83,14 @@
         </details>
         <div id="chat-history"></div>
         <form id="chat-form" class="chat-input-row">
-          <div class="chat-upload-row">
+          <div id="chat-image-dropzone" class="chat-upload-row">
             <span id="chat-image-filename" class="file-filename">No file selected</span>
             <label class="file-picker" for="chat-image-input">
               <span>Browse...</span>
               <input type="file" id="chat-image-input" accept="image/*">
             </label>
             <button type="button" id="chat-image-remove" class="btn btn--secondary" disabled>Remove image</button>
+            <span class="file-drop-hint">or drag &amp; drop an image here</span>
           </div>
           <div class="chat-input-main">
             <textarea id="chat-input" rows="3" placeholder="Type your message... (Enter to send, Shift+Enter for a new line)" required></textarea>
@@ -109,6 +113,6 @@
     </aside>
   </main>
 
-  <script src="/app.js?v=10"></script>
+  <script src="/app.js?v=11"></script>
 </body>
 </html>
