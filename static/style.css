@@ -236,14 +236,6 @@ textarea {
   display: block;
 }
 
-.chat-upload-row {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.45rem;
-}
-
 .chat-input-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -257,34 +249,6 @@ textarea {
   gap: 0.5rem;
 }
 
-.file-picker {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2.3rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.5);
-  background: #f8fafc;
-  color: var(--text);
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: all 0.15s ease;
-}
-
-.file-picker:hover {
-  background: #f1f5f9;
-  border-color: rgba(59, 130, 246, 0.45);
-}
-
-.file-picker input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
 .file-filename {
   min-width: 0;
   max-width: 280px;
@@ -292,10 +256,6 @@ textarea {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);
-  font-size: 0.8rem;
-}
-
-#chat-image-remove {
   font-size: 0.8rem;
 }
 
@@ -409,7 +369,8 @@ textarea {
 #chat-image-dropzone {
   border: 1px dashed rgba(148, 163, 184, 0.5);
   border-radius: 8px;
-  padding: 0.4rem 0.6rem;
+  padding: 0.5rem 0.7rem;
+  margin-bottom: 0.45rem;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
@@ -419,8 +380,52 @@ textarea {
 }
 
 .file-drop-hint {
-  font-size: 0.78rem;
+  display: block;
+  font-size: 0.8rem;
   color: var(--muted);
+}
+
+.chat-image-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.chat-image-list:empty {
+  margin-top: 0;
+}
+
+.chat-image-list-item {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+
+.chat-image-list-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+.chat-image-list-item button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: var(--danger, #dc2626);
+  color: #fff;
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chat-message-failed {

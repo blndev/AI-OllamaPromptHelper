@@ -245,10 +245,10 @@ async function applyServerFeatureFlags() {
 const chatHistoryEl = document.getElementById("chat-history");
 const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
-const chatImageInput = document.getElementById("chat-image-input");
-const chatImageFilename = document.getElementById("chat-image-filename");
-const chatImageRemove = document.getElementById("chat-image-remove");
 const chatImageDropzone = document.getElementById("chat-image-dropzone");
+const chatImageListEl = document.getElementById("chat-image-list");
+// Images attached to the message currently being composed, in drop order.
+let selectedImages = []; // { name, base64, dataUrl }
 const chatStatus = document.getElementById("chat-status");
 const contextIndicator = document.getElementById("chat-context-indicator");
 const undoToast = document.getElementById("chat-undo-toast");
@@ -281,7 +281,7 @@ function clearChatStatus(message = "") {
   chatStatus.classList.remove("status-text--error");
 }
 
-let chatMessages = []; // { id, role, content, checked, image, thinking }
+let chatMessages = []; // { id, role, content, checked, images, thinking }
 let nextMessageId = 1;
 let lastDeleted = null; // { message, index }
 let undoTimer = null;
@@ -412,11 +412,13 @@ function renderChat() {
       row.append(details);
     }
 
-    if (message.image) {
-      const thumb = document.createElement("img");
-      thumb.src = message.image;
-      thumb.className = "chat-image-thumb";
-      row.append(thumb);
+    if (message.images?.length) {
+      for (const image of message.images) {
+        const thumb = document.createElement("img");
+        thumb.src = image;
+        thumb.className = "chat-image-thumb";
+        row.append(thumb);
+      }
     }
 
     if (message.failed) {
@@ -505,7 +507,7 @@ async function runAssistantStream(historyForContext, signal) {
         messages: historyForContext.map((m) => ({
           role: m.role,
           content: m.content,
-          image: m.imageBase64 ?? null,
+          images: m.imagesBase64 ?? null,
         })),
         ...tuningOverrides(),
       }),
@@ -707,20 +709,45 @@ async function regenerateLast() {
 }
 
 function resetImageSelection() {
-  chatImageInput.value = "";
-  chatImageFilename.textContent = "No file selected";
-  chatImageRemove.disabled = true;
+  selectedImages = [];
+  renderSelectedImages();
 }
 
-chatImageInput.addEventListener("change", () => {
-  const file = chatImageInput.files[0];
-  chatImageFilename.textContent = file?.name ?? "No file selected";
-  chatImageRemove.disabled = !file;
-});
+function renderSelectedImages() {
+  chatImageListEl.innerHTML = "";
+  selectedImages.forEach((image, index) => {
+    const item = document.createElement("div");
+    item.className = "chat-image-list-item";
+    const thumb = document.createElement("img");
+    thumb.src = image.dataUrl;
+    thumb.alt = image.name;
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.textContent = "✕";
+    removeBtn.title = `Remove ${image.name}`;
+    removeBtn.addEventListener("click", () => {
+      selectedImages.splice(index, 1);
+      renderSelectedImages();
+    });
+    item.append(thumb, removeBtn);
+    chatImageListEl.appendChild(item);
+  });
+}
 
-chatImageRemove.addEventListener("click", resetImageSelection);
+async function addDroppedImageFiles(files) {
+  const imageFiles = [...files].filter((f) => f.type.startsWith("image/"));
+  if (imageFiles.length === 0) {
+    setChatError("Only image files can be dropped here.");
+    return;
+  }
+  for (const file of imageFiles) {
+    const base64 = await readFileAsBase64(file);
+    selectedImages.push({ name: file.name, base64, dataUrl: `data:${file.type};base64,${base64}` });
+  }
+  renderSelectedImages();
+}
 
-// Drag & drop support alongside the "Browse..." button.
+// Drag & drop is the only way to attach images, so it supports any number of files at once.
 ["dragenter", "dragover"].forEach((eventName) => {
   chatImageDropzone.addEventListener(eventName, (event) => {
     event.preventDefault();
@@ -738,14 +765,7 @@ chatImageRemove.addEventListener("click", resetImageSelection);
 });
 
 chatImageDropzone.addEventListener("drop", (event) => {
-  const file = [...(event.dataTransfer?.files ?? [])].find((f) => f.type.startsWith("image/"));
-  if (!file) {
-    setChatError("Only image files can be dropped here.");
-    return;
-  }
-  chatImageInput.files = event.dataTransfer.files;
-  chatImageFilename.textContent = file.name;
-  chatImageRemove.disabled = false;
+  addDroppedImageFiles(event.dataTransfer?.files ?? []);
 });
 
 chatForm.addEventListener("submit", async (event) => {
@@ -755,12 +775,10 @@ chatForm.addEventListener("submit", async (event) => {
     return;
   }
   const text = chatInput.value;
-  const imageFile = chatImageInput.files[0];
   const userMessage = { id: nextMessageId++, role: "user", content: text, checked: true };
-  if (imageFile) {
-    const base64 = await readFileAsBase64(imageFile);
-    userMessage.imageBase64 = base64;
-    userMessage.image = `data:${imageFile.type};base64,${base64}`;
+  if (selectedImages.length > 0) {
+    userMessage.imagesBase64 = selectedImages.map((image) => image.base64);
+    userMessage.images = selectedImages.map((image) => image.dataUrl);
   }
   chatMessages.push(userMessage);
   triggerAutosave();
@@ -793,7 +811,7 @@ function currentHistoryPayload() {
     messages: chatMessages.map((m) => ({
       role: m.role,
       content: m.content,
-      image: m.image ?? null,
+      images: m.images ?? null,
       checked: m.checked,
     })),
   };
@@ -817,7 +835,7 @@ function applyHistory(history) {
     id: nextMessageId++,
     role: m.role,
     content: m.content,
-    image: m.image ?? null,
+    images: m.images ?? null,
     checked: m.checked ?? true,
   }));
   renderChat();

@@ -33,8 +33,8 @@ def _sample_history_payload() -> dict:
         "presetId": "p1",
         "topic": "My Topic",
         "messages": [
-            {"role": "user", "content": "Hello", "image": None, "checked": True},
-            {"role": "assistant", "content": "Hi there", "image": None, "checked": False},
+            {"role": "user", "content": "Hello", "images": None, "checked": True},
+            {"role": "assistant", "content": "Hi there", "images": None, "checked": False},
         ],
     }
 

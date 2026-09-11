@@ -15,7 +15,7 @@ class ChatMessageIn(BaseModel):
     role: Literal["user", "assistant"]
     content: str
     # Base64-encoded image bytes, no "data:image/...;base64," prefix (frontend strips it).
-    image: str | None = None
+    images: list[str] | None = None
 
 
 class ChatReply(BaseModel):
@@ -65,13 +65,12 @@ def build_messages(preset: Preset, history: list[ChatMessageIn]) -> list[BaseMes
     messages: list[BaseMessage] = [SystemMessage(content=build_system_prompt(preset))]
     for entry in history:
         if entry.role == "user":
-            if entry.image:
+            if entry.images:
                 # ChatOllama._convert_messages_to_ollama_messages reads content blocks
                 # of type "text" and "image_url" (the image_url value may be a raw
-                # base64 string or a data URI); this is the shape it expects.
-                content = [
-                    {"type": "text", "text": entry.content},
-                    {"type": "image_url", "image_url": entry.image},
+                # base64 string or a data URI); one block per attached image.
+                content = [{"type": "text", "text": entry.content}] + [
+                    {"type": "image_url", "image_url": image} for image in entry.images
                 ]
                 messages.append(HumanMessage(content=content))
             else:

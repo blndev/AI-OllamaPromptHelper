@@ -116,24 +116,39 @@ class TestBuildMessages:
         assert messages[3].content == "How are you?"
 
     def test_user_message_without_image_has_plain_string_content(self):
-        """A user entry with no image keeps HumanMessage.content as a plain string."""
+        """A user entry with no images keeps HumanMessage.content as a plain string."""
         preset = _make_preset()
-        history = [ChatMessageIn(role="user", content="Hello", image=None)]
+        history = [ChatMessageIn(role="user", content="Hello", images=None)]
 
         messages = build_messages(preset, history)
 
         assert messages[1].content == "Hello"
 
     def test_user_message_with_image_uses_multimodal_content_blocks(self):
-        """A user entry with image produces the text+image_url block shape ChatOllama expects."""
+        """A user entry with one image produces the text+image_url block shape ChatOllama expects."""
         preset = _make_preset()
-        history = [ChatMessageIn(role="user", content="What is this?", image="ZmFrZWJhc2U2NA==")]
+        history = [ChatMessageIn(role="user", content="What is this?", images=["ZmFrZWJhc2U2NA=="])]
 
         messages = build_messages(preset, history)
 
         assert messages[1].content == [
             {"type": "text", "text": "What is this?"},
             {"type": "image_url", "image_url": "ZmFrZWJhc2U2NA=="},
+        ]
+
+    def test_user_message_with_multiple_images_produces_one_block_each(self):
+        """A user entry with several images produces one image_url block per image."""
+        preset = _make_preset()
+        history = [
+            ChatMessageIn(role="user", content="Compare these", images=["aW1nMQ==", "aW1nMg=="])
+        ]
+
+        messages = build_messages(preset, history)
+
+        assert messages[1].content == [
+            {"type": "text", "text": "Compare these"},
+            {"type": "image_url", "image_url": "aW1nMQ=="},
+            {"type": "image_url", "image_url": "aW1nMg=="},
         ]
 
 
