@@ -229,6 +229,11 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Changelog
 
+### v1.2.0
+* Multiple images can now be attached to a single chat message (previously limited to one).
+* Images are attached via drag & drop only (the "Browse..." file picker was removed); each attached image shows as a thumbnail that can be removed individually before sending.
+* The preset editor panel is now collapsed by default on startup, and its header is styled to make expanding/collapsing it more discoverable.
+
 ### v1.1.0
 * Added `docker-compose.yml` to start the app together with an `ollama` container (with a named volume for pulled models).
 * Documented running the app via [`run.sh`](run.sh) on Linux/macOS.
