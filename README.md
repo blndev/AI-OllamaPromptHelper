@@ -9,7 +9,7 @@ Vibe Coded
 
 * **Chat-based prompt workshop** — iteratively refine prompts for image, video and text generators through a natural conversation with your local LLM
 * **Fully editable presets** — switch, create and edit system prompt / model / tuning presets right from the UI, no config file editing required
-* **Multimodal input** — attach images to your messages for vision-capable models
+* **Multimodal input** — attach images by drag and drop or paste them from the clipboard for vision-capable models
 * **Visible "thinking"** — reasoning output is shown separately from the final answer when a model supports it
 * **Fine-grained context control** — check/uncheck individual messages to control exactly what's sent to the model, with a live context-size indicator
 * **Automatic prompt extraction** — recognized prompts are pulled out of the conversation and collected into per-topic Markdown libraries, ready to copy with one click

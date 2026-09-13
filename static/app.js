@@ -887,10 +887,10 @@ function renderSelectedImages() {
   });
 }
 
-async function addDroppedImageFiles(files) {
+async function addImageFiles(files) {
   const imageFiles = [...files].filter((f) => f.type.startsWith("image/"));
   if (imageFiles.length === 0) {
-    setChatError("Only image files can be dropped here.");
+    setChatError("Only image files can be attached here.");
     return;
   }
   for (const file of imageFiles) {
@@ -920,7 +920,19 @@ async function addDroppedImageFiles(files) {
 });
 
 chatForm.addEventListener("drop", (event) => {
-  addDroppedImageFiles(event.dataTransfer?.files ?? []);
+  addImageFiles(event.dataTransfer?.files ?? []);
+});
+
+chatForm.addEventListener("paste", (event) => {
+  const imageFiles = [...(event.clipboardData?.items ?? [])]
+    .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+    .map((item) => item.getAsFile())
+    .filter((file) => file !== null);
+
+  if (imageFiles.length > 0) {
+    event.preventDefault();
+    addImageFiles(imageFiles);
+  }
 });
 
 chatForm.addEventListener("submit", async (event) => {
