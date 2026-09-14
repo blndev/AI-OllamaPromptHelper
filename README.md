@@ -316,6 +316,41 @@ Several presets currently tend to end their answer with the same recurring list 
 
 This is a prompt-engineering fix in the bundled presets' `systemPrompt`s (and, where used, the `injectPromptTemplate` boilerplate in `chat_service.py`), not a new feature/endpoint — but it should be validated the same way as other preset changes: manual/subagent-simulated review across a multi-turn conversation per affected preset, checking that suggestions actually change and shrink/disappear as a topic is exhausted.
 
+### Interactive Prompt-Coach
+
+Version 2 should provide an optional, lightweight Prompt-Coach as a second conversation partner. This is deliberately separate from the existing chat and is not an autonomous agent workflow. The normal single-pass chat remains unchanged when the coach is unused.
+
+The Prompt-Coach receives the current user request and, when available, the latest assistant answer. It returns a visible coaching message that distinguishes between:
+
+* **Preserved requirements** — explicit user requirements that must remain unchanged;
+* **Clarifications** — ambiguities or missing details that can be resolved through questions;
+* **Suggestions** — optional creative additions that must not silently replace user intent;
+* **Optimized prompt** — a proposed revised prompt for the user to accept, edit, or reject.
+
+The user can respond to the coaching message in the normal chat, for example by accepting one suggestion, rejecting a creative addition, or asking for a different direction. The optimized prompt is not inserted into permanent chat history, autosave, or the prompt library until the user explicitly applies it. The coach must not invent fixed requirements, overwrite protected values, or present optional additions as user decisions.
+
+The first implementation should use one bounded additional LLM call with a structured response. It does not require autonomous tool-calling, freely planning subagents, or changes to the existing chat endpoint. Later versions may allow the coach to consult preset rules or the prompt library through narrowly scoped tools.
+
+Suggested response shape:
+
+```json
+{
+  "preserved_requirements": [],
+  "clarifications": [],
+  "suggestions": [],
+  "optimized_prompt": ""
+}
+```
+
+Acceptance criteria:
+
+* The existing chat behaves exactly as before when the Prompt-Coach is unused.
+* The coach is explicitly labeled as a separate conversation partner.
+* Fixed user requirements and protected values are preserved in the proposed prompt.
+* Optional creative additions are clearly labeled and never applied silently.
+* The user can accept, edit, or reject the proposed prompt before it affects chat context or persistence.
+* Coach failures are shown to the user and do not alter the existing conversation.
+
 ### Multi-pass prompt refinement
 
 Version 2 should optionally process refinement presets as a controlled pipeline instead of producing the final answer in a single model call:
