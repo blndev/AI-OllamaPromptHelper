@@ -4,6 +4,6 @@
   "presetFolder": "./presets",
   "outputFolder": "./output",
   "appTitle": "Ollama Prompt Helper",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "debugMode": false
 }
