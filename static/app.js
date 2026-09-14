@@ -588,7 +588,7 @@ function saveEditedMessage(message, newContent, index, resend) {
     chatMessages = chatMessages.slice(0, index + 1);
     renderChat();
     triggerAutosave();
-    scrollChatHistoryToBottom();
+    forceScrollChatHistoryToBottom();
     clearChatStatus("Waiting for response...");
     streamAssistantReply(chatMessages.filter((m) => m.checked)).then((ok) => {
       if (ok) {
@@ -601,7 +601,31 @@ function saveEditedMessage(message, newContent, index, resend) {
   renderChat();
 }
 
+// Whether streaming updates should keep following the chat to the bottom.
+// Turned off as soon as the user scrolls away from the bottom themselves, so
+// incoming tokens don't yank them back down while they're reading earlier
+// messages; re-enabled once they scroll back to the bottom, or by an
+// explicit user action (send/resend) via forceScrollChatHistoryToBottom().
+let autoScrollToBottom = true;
+const AUTO_SCROLL_THRESHOLD_PX = 40;
+
+chatHistoryEl.addEventListener("scroll", () => {
+  const distanceFromBottom =
+    chatHistoryEl.scrollHeight - chatHistoryEl.scrollTop - chatHistoryEl.clientHeight;
+  autoScrollToBottom = distanceFromBottom < AUTO_SCROLL_THRESHOLD_PX;
+});
+
 function scrollChatHistoryToBottom() {
+  if (!autoScrollToBottom) {
+    return;
+  }
+  requestAnimationFrame(() => {
+    chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+  });
+}
+
+function forceScrollChatHistoryToBottom() {
+  autoScrollToBottom = true;
   requestAnimationFrame(() => {
     chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
   });
@@ -950,7 +974,7 @@ chatForm.addEventListener("submit", async (event) => {
   chatMessages.push(userMessage);
   triggerAutosave();
   renderChat();
-  scrollChatHistoryToBottom();
+  forceScrollChatHistoryToBottom();
   chatInput.value = "";
   resetImageSelection();
   clearChatStatus("Waiting for response...");
