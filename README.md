@@ -256,7 +256,6 @@ The project uses `pytest` with FastAPI's `TestClient`:
 .venv/bin/pytest tests/ -v
 ```
 The same test suite runs automatically in CI (see [.github/workflows/docker-build.yml](.github/workflows/docker-build.yml)) before an image is built/published.
-The same test suite runs automatically in CI (see [`.github/workflows/docker-build.yml`](.github/workflows/docker-build.yml)) before an image is built/published.
 
 ## Contributing
 Contributions, bug reports and feature ideas are welcome — please open an issue or pull request. Before submitting a PR:
@@ -266,6 +265,67 @@ Contributions, bug reports and feature ideas are welcome — please open an issu
 
 ## License
 This project is licensed under the [MIT License](LICENSE).
+
+## Version 2 Roadmap
+
+### Multi-pass prompt refinement
+
+Version 2 should optionally process refinement presets as a controlled pipeline instead of producing the final answer in a single model call:
+
+1. **Analysis pass** — a dedicated analyst system prompt examines the original request and attached reference images. It identifies the input language, intended style and medium, mandatory details, protected values such as names or visible text, ambiguities, and useful areas for expansion. It must not write the final prompt.
+2. **Refinement pass** — a separate refiner system prompt receives the unchanged original request plus the structured analysis. It intensively expands the prompt while preserving its language, style, subject identity, explicit constraints, and requested output type.
+3. **Validation pass** — an independent validator agent receives the original request, analysis, and candidate answer. It checks the result against the criteria below and returns a structured verdict rather than rewriting the answer immediately.
+4. **Optional correction pass** — when validation fails, the refiner receives only the validator's concrete findings and produces one corrected answer. The pipeline validates that revision once more but performs no further automatic revisions, preventing loops and unbounded model usage.
+
+The analysis and validator use independent system prompts with narrowly defined responsibilities. They may use the same Ollama model as the refiner or separately configured models. Intermediate analysis is internal by default; debug mode may expose it for troubleshooting. Only the approved or final corrected answer is added to chat history and prompt libraries.
+
+### Validator agent
+
+The validator should return machine-readable output containing an `approved` boolean, a list of findings, and correction instructions. Each finding should identify a criterion, severity, and concise evidence from the candidate answer. Validation covers:
+
+* input language is preserved in the refined prompt;
+* requested artistic style and medium are preserved rather than replaced;
+* every explicit user requirement remains present and no requirement is contradicted;
+* names, quoted text, subject count, identity-defining traits, and other protected values remain unchanged;
+* additions are compatible with the original intent and unsupported brands, real people, locations, or text are not invented;
+* suggestions such as clothing, poses, environment, lighting, or composition are either compatible refinements or clearly marked as optional alternatives;
+* required `<prompt>` markup is complete and valid when prompt extraction is enabled;
+* the answer follows the requested response structure and contains a usable final prompt.
+
+The validator is advisory for ordinary chat presets and enforceable for multi-pass refinement presets. Infrastructure or parsing failures must be surfaced to the user; they must not silently mark an unchecked response as approved.
+
+### Proposed preset configuration
+
+The exact schema remains an implementation decision, but the intended configuration surface is:
+
+```json
+{
+  "multiPassRefinement": true,
+  "analysisSystemPrompt": "...",
+  "systemPrompt": "...",
+  "validationEnabled": true,
+  "validationSystemPrompt": "...",
+  "analysisModel": "qwen3:8b",
+  "validationModel": "qwen3:8b",
+  "maxRevisionAttempts": 1
+}
+```
+
+Existing presets remain single-pass unless `multiPassRefinement` is explicitly enabled. Missing analysis or validation models fall back to the preset's main model. Version 2 should expose the mode, prompts, models, and validation result in the preset editor without making the default single-pass workflow more complicated.
+
+### Streaming and user experience
+
+During a multi-pass request, the UI should show distinct status phases: `Analyzing`, `Refining`, `Validating`, and, when necessary, `Correcting`. The candidate answer should not stream into the permanent chat message before validation because a rejected draft would otherwise be visible and could be autosaved or extracted. The final answer may be streamed after approval, or displayed atomically when buffering is required by the validation flow.
+
+### Acceptance criteria
+
+* Single-pass presets behave exactly as in version 1.
+* Multi-pass presets use separate analyst and refiner instructions and never replace the original request with the analysis.
+* Validation runs before chat persistence and Markdown prompt extraction.
+* A failed validation can trigger at most the configured number of correction attempts.
+* The final validation result is available to the frontend and stored with saved chat history for traceability.
+* Cancellation stops the active pass and prevents subsequent passes from starting.
+* Automated tests cover successful approval, correction after rejection, repeated rejection, malformed validator output, model/network failure, cancellation, and fallback model selection.
 
 ## Changelog
 
