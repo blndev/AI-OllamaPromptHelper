@@ -526,6 +526,103 @@ textarea {
   word-break: break-word;
 }
 
+.chat-message > .markdown-content {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.markdown-content > :first-child {
+  margin-top: 0;
+}
+
+.markdown-content > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin: 0.6rem 0 0.35rem;
+  line-height: 1.25;
+}
+
+.markdown-content h1 {
+  font-size: 1.25rem;
+}
+
+.markdown-content h2 {
+  font-size: 1.15rem;
+}
+
+.markdown-content h3 {
+  font-size: 1.05rem;
+}
+
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  font-size: 0.95rem;
+}
+
+.markdown-content p,
+.markdown-content ul,
+.markdown-content ol,
+.markdown-content blockquote,
+.markdown-content table,
+.markdown-content pre {
+  margin: 0.45rem 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 1.5rem;
+}
+
+.markdown-content pre {
+  overflow-x: auto;
+  padding: 0.65rem 0.8rem;
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--code-text);
+}
+
+.markdown-content pre code {
+  white-space: pre;
+}
+
+.markdown-content :not(pre) > code {
+  padding: 0.08rem 0.25rem;
+  border-radius: 4px;
+  background: var(--code-bg);
+  color: var(--code-text);
+}
+
+.markdown-content blockquote {
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.markdown-content table {
+  border-collapse: collapse;
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.markdown-content a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 .chat-message button {
   border: none;
   background: none;
@@ -707,7 +804,6 @@ textarea {
 
 .chat-thinking-text {
   display: block;
-  font-style: italic;
   margin-top: 0.25rem;
 }
 

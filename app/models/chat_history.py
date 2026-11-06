@@ -11,6 +11,7 @@ class ChatHistoryMessage(BaseModel):
 
     role: Literal["user", "assistant"]
     content: str
+    thinking: str | None = None
     images: list[str] | None = None
     checked: bool = True
 

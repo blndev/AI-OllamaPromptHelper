@@ -22,7 +22,12 @@ def _sample_history() -> ChatHistory:
         topic="My Topic",
         messages=[
             ChatHistoryMessage(role="user", content="Hello"),
-            ChatHistoryMessage(role="assistant", content="Hi there", checked=False),
+            ChatHistoryMessage(
+                role="assistant",
+                content="Hi there",
+                thinking="Reasoning text",
+                checked=False,
+            ),
         ],
     )
 

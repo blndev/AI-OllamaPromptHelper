@@ -332,13 +332,16 @@ const chatAutosaveStatus = document.getElementById("chat-autosave-status");
 const chatStopButton = document.getElementById("chat-stop");
 const chatEditDialog = document.getElementById("chat-edit-dialog");
 const chatEditTitle = document.getElementById("chat-edit-title");
+const chatEditLabel = document.querySelector(".chat-edit-dialog__label");
 const chatEditContent = document.getElementById("chat-edit-content");
 const chatEditAttachments = document.getElementById("chat-edit-attachments");
+const chatEditAttachmentSection = document.querySelector(".chat-edit-dialog__attachments");
 const chatEditAddImages = document.getElementById("chat-edit-add-images");
 const chatEditSave = document.getElementById("chat-edit-save");
 const chatEditSaveResend = document.getElementById("chat-edit-save-resend");
 let editingMessage = null;
 let editingMessageIndex = -1;
+let editingField = "content";
 let editingImages = [];
 // Set while a streaming reply is in flight so "Stop" can abort it.
 let activeStreamController = null;
@@ -442,6 +445,148 @@ function showLastRequestDebug(payload) {
   debugPanel.open = true;
 }
 
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
+}
+
+function renderInlineMarkdown(text) {
+  const fragments = [];
+  const storeFragment = (html) => {
+    fragments.push(html);
+    return `\u0000${fragments.length - 1}\u0000`;
+  };
+  let html = String(text).replace(/`([^`\n]+)`/g, (_, code) =>
+    storeFragment(`<code>${escapeHtml(code)}</code>`)
+  );
+  html = escapeHtml(html);
+  html = html.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^)\s]+|mailto:[^)\s]+)\)/gi,
+    (_, label, url) => storeFragment(
+      `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`
+    )
+  );
+  html = html
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__(.+?)__/g, "<strong>$1</strong>")
+    .replace(/~~(.+?)~~/g, "<del>$1</del>")
+    .replace(/\*([^*\n]+)\*/g, "<em>$1</em>")
+    .replace(/_([^_\n]+)_/g, "<em>$1</em>")
+    .replace(/\n/g, " ");
+  return html.replace(/\u0000(\d+)\u0000/g, (_, index) => fragments[Number(index)]);
+}
+
+function markdownTableCells(line) {
+  return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+}
+
+function renderMarkdown(markdown) {
+  const lines = String(markdown ?? "").replace(/\r\n?/g, "\n").split("\n");
+  const blocks = [];
+  let paragraph = [];
+  const flushParagraph = () => {
+    if (paragraph.length > 0) {
+      blocks.push(`<p>${renderInlineMarkdown(paragraph.join("\n"))}</p>`);
+      paragraph = [];
+    }
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const fence = /^\s*```([\w+-]*)\s*$/.exec(line);
+    if (fence) {
+      flushParagraph();
+      const codeLines = [];
+      while (++index < lines.length && !/^\s*```\s*$/.test(lines[index])) {
+        codeLines.push(lines[index]);
+      }
+      const language = fence[1] ? ` class="language-${fence[1]}"` : "";
+      blocks.push(`<pre><code${language}>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+      continue;
+    }
+
+    const heading = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
+    if (heading) {
+      flushParagraph();
+      const level = heading[1].length;
+      blocks.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`);
+      continue;
+    }
+
+    if (/^\s{0,3}(?:-{3,}|_{3,}|\*{3,})\s*$/.test(line)) {
+      flushParagraph();
+      blocks.push("<hr>");
+      continue;
+    }
+
+    if (/^\s*\|?.+\|.+\|?\s*$/.test(line) && /^\s*\|?\s*:?-{3,}/.test(lines[index + 1] ?? "")) {
+      flushParagraph();
+      const headers = markdownTableCells(line);
+      index += 1;
+      const rows = [];
+      while (index + 1 < lines.length && lines[index + 1].includes("|")) {
+        rows.push(markdownTableCells(lines[++index]));
+      }
+      const headerHtml = headers.map((cell) => `<th>${renderInlineMarkdown(cell)}</th>`).join("");
+      const rowsHtml = rows.map((row) =>
+        `<tr>${headers.map((_, cellIndex) => `<td>${renderInlineMarkdown(row[cellIndex] ?? "")}</td>`).join("")}</tr>`
+      ).join("");
+      blocks.push(`<table><thead><tr>${headerHtml}</tr></thead><tbody>${rowsHtml}</tbody></table>`);
+      continue;
+    }
+
+    if (/^\s*>/.test(line)) {
+      flushParagraph();
+      const quoteLines = [];
+      while (index < lines.length && /^\s*>/.test(lines[index])) {
+        quoteLines.push(lines[index++].replace(/^\s*>\s?/, ""));
+      }
+      index -= 1;
+      blocks.push(`<blockquote>${renderMarkdown(quoteLines.join("\n"))}</blockquote>`);
+      continue;
+    }
+
+    const listMatch = /^\s{0,3}([-+*]|\d+[.)])\s+(.+)$/.exec(line);
+    if (listMatch) {
+      flushParagraph();
+      const ordered = /^\d/.test(listMatch[1]);
+      const items = [];
+      while (index < lines.length) {
+        const item = /^\s{0,3}([-+*]|\d+[.)])\s+(.+)$/.exec(lines[index]);
+        if (!item || /^\d/.test(item[1]) !== ordered) {
+          break;
+        }
+        items.push(`<li>${renderInlineMarkdown(item[2])}</li>`);
+        index += 1;
+      }
+      index -= 1;
+      const tag = ordered ? "ol" : "ul";
+      blocks.push(`<${tag}>${items.join("")}</${tag}>`);
+      continue;
+    }
+
+    if (!line.trim()) {
+      flushParagraph();
+    } else {
+      paragraph.push(line);
+    }
+  }
+  flushParagraph();
+  return blocks.join("");
+}
+
+function appendMarkdown(target, text, className = "markdown-content") {
+  const content = document.createElement("div");
+  content.className = className;
+  content.innerHTML = renderMarkdown(text);
+  target.appendChild(content);
+}
+
 function renderMessageText(message) {
   const content = message.content ?? "";
   const fragment = document.createDocumentFragment();
@@ -458,9 +603,7 @@ function renderMessageText(message) {
     foundPrompt = true;
     const before = content.slice(lastIndex, match.index);
     if (before) {
-      const beforeNode = document.createElement("span");
-      beforeNode.textContent = before;
-      fragment.appendChild(beforeNode);
+      appendMarkdown(fragment, before);
     }
 
     const attrs = match[1] ?? "";
@@ -480,9 +623,7 @@ function renderMessageText(message) {
 
   const tail = content.slice(lastIndex);
   if (tail || !foundPrompt) {
-    const textNode = document.createElement("span");
-    textNode.textContent = foundPrompt ? tail : content;
-    fragment.appendChild(textNode);
+    appendMarkdown(fragment, foundPrompt ? tail : content);
   }
 
   return fragment;
@@ -520,11 +661,16 @@ function renderChat() {
       });
       const summary = document.createElement("summary");
       summary.textContent = "Thinking";
-      const thinkingText = document.createElement("span");
-      thinkingText.className = "chat-thinking-text";
-      thinkingText.textContent = message.thinking;
-      details.append(summary, thinkingText);
+      const thinkingContent = document.createDocumentFragment();
+      appendMarkdown(thinkingContent, message.thinking, "chat-thinking-text markdown-content");
+      details.append(summary, thinkingContent);
       row.append(details);
+
+      const editThinkingBtn = document.createElement("button");
+      editThinkingBtn.type = "button";
+      editThinkingBtn.textContent = "Edit thinking";
+      editThinkingBtn.addEventListener("click", () => openMessageEditor(message, index, "thinking"));
+      row.append(editThinkingBtn);
     }
 
     if (message.images?.length) {
@@ -649,16 +795,23 @@ function renderEditorAttachments() {
   });
 }
 
-function openMessageEditor(message, index) {
+function openMessageEditor(message, index, field = "content") {
   editingMessage = message;
   editingMessageIndex = index;
-  chatEditContent.value = message.content ?? "";
-  editingImages = (message.images ?? []).map((dataUrl, imageIndex) => {
+  editingField = field;
+  const isThinking = field === "thinking";
+  chatEditContent.value = message[field] ?? "";
+  editingImages = (isThinking ? [] : message.images ?? []).map((dataUrl, imageIndex) => {
     const match = /^data:([^;,]+);base64,(.+)$/.exec(dataUrl);
     return { name: `Image ${imageIndex + 1}`, base64: match?.[2] ?? "", dataUrl };
   });
-  chatEditTitle.textContent = message.role === "assistant" ? "Edit assistant response" : "Edit user message";
-  chatEditSaveResend.hidden = message.role !== "user";
+  chatEditTitle.textContent = isThinking
+    ? "Edit thinking response"
+    : message.role === "assistant" ? "Edit assistant response" : "Edit user message";
+  chatEditLabel.textContent = isThinking ? "Thinking response" : "Message";
+  chatEditAttachmentSection.hidden = isThinking;
+  chatEditSaveResend.hidden = isThinking || message.role !== "user";
+  chatEditSave.textContent = isThinking ? "Save thinking" : "Save";
   renderEditorAttachments();
   chatEditDialog.showModal();
   chatEditContent.focus();
@@ -683,9 +836,13 @@ document.getElementById("chat-edit-close").addEventListener("click", () => chatE
 chatEditDialog.addEventListener("close", () => {
   editingMessage = null;
   editingMessageIndex = -1;
+  editingField = "content";
   editingImages = [];
   chatEditContent.value = "";
   chatEditAttachments.innerHTML = "";
+  chatEditAttachmentSection.hidden = false;
+  chatEditLabel.textContent = "Message";
+  chatEditSave.textContent = "Save";
 });
 
 function commitMessageEdit(resend) {
@@ -694,9 +851,17 @@ function commitMessageEdit(resend) {
   }
   const message = editingMessage;
   const index = editingMessageIndex;
+  const field = editingField;
   const content = chatEditContent.value;
   const images = editingImages.map((image) => ({ ...image }));
   chatEditDialog.close();
+  if (field === "thinking") {
+    message.thinking = content;
+    message.thinkingManual = true;
+    triggerAutosave();
+    renderChat();
+    return;
+  }
   saveEditedMessage(message, content, index, resend, images);
 }
 
@@ -1133,6 +1298,7 @@ function currentHistoryPayload() {
     messages: chatMessages.map((m) => ({
       role: m.role,
       content: m.content,
+      thinking: m.thinking ?? null,
       images: m.images ?? null,
       checked: m.checked,
     })),
@@ -1157,6 +1323,7 @@ function applyHistory(history) {
     id: nextMessageId++,
     role: m.role,
     content: m.content,
+    thinking: m.thinking ?? null,
     images: m.images ?? null,
     checked: m.checked ?? true,
   }));

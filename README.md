@@ -417,6 +417,10 @@ The prompt history sidebar can be hidden from the chat toolbar; its visibility p
 
 ## Changelog
 
+### v1.2.4
+* Chat and thinking responses now render common Markdown formatting while the editor continues to show and preserve the raw source text.
+* Thinking responses can now be edited separately from the assistant's final answer, and are preserved in saved chat histories.
+
 ### v1.2.3
 * The Topic Prompt History sidebar can now be hidden or shown from the chat controls, with the preference retained across page reloads.
 * The sidebar stays fixed within the desktop viewport and its prompt entries scroll independently from chat history.
