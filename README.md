@@ -417,6 +417,9 @@ The prompt history sidebar can be hidden from the chat toolbar; its visibility p
 
 ## Changelog
 
+### v1.2.6
+* Before generating a reply, the app automatically deselects the oldest messages when the estimated context exceeds `num_ctx` minus an output reserve of 110% of the average size of the latest three assistant answers. The newest checked user message is retained.
+
 ### v1.2.5
 * Chat messages from either the user or assistant can be bookmarked, highlighted, and retained in saved chat histories.
 

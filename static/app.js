@@ -402,16 +402,75 @@ let currentHistoryName = null;
 
 function updateContextIndicator() {
   const included = chatMessages.filter((m) => m.checked);
-  // Rough only: actual image token cost depends on the model's vision
-  // encoder/resolution and can be far higher than this estimate.
-  const IMAGE_TOKEN_ESTIMATE = 768;
-  const textTokens = included.reduce((sum, m) => sum + m.content.length, 0) / 4;
-  const imageTokens = included.reduce((sum, m) => sum + (m.images?.length ?? 0), 0) * IMAGE_TOKEN_ESTIMATE;
-  const approxTokens = Math.round(textTokens + imageTokens);
+  const budget = estimateContextBudget();
   const imageCount = included.reduce((sum, m) => sum + (m.images?.length ?? 0), 0);
   const imageNote = imageCount > 0 ? ` (incl. ${imageCount} image${imageCount === 1 ? "" : "s"}, rough estimate)` : "";
-  contextIndicator.textContent = `${included.length} msgs · ~${approxTokens} tokens in context${imageNote}`;
+  contextIndicator.textContent =
+    `${included.length} msgs · ~${budget.usedTokens}/${budget.limit} tokens · ` +
+    `~${budget.reservedTokens} reserved for reply${imageNote}`;
 }
+
+const IMAGE_TOKEN_ESTIMATE = 768;
+
+function estimateTextTokens(text) {
+  return Math.ceil(String(text ?? "").length / 4);
+}
+
+function estimateMessageTokens(message) {
+  return estimateTextTokens(message.content) +
+    (message.images?.length ?? 0) * IMAGE_TOKEN_ESTIMATE;
+}
+
+function estimateContextBudget() {
+  const configuredLimit = Number(fieldEl("num_ctx").value);
+  const limit = configuredLimit > 0 ? configuredLimit : DEFAULT_TUNING.num_ctx;
+  const included = chatMessages.filter((message) => message.checked);
+  const systemTokens = estimateTextTokens(fieldEl("systemPrompt").value);
+  const messageTokens = included.reduce(
+    (total, message) => total + estimateMessageTokens(message),
+    0
+  );
+  const recentAnswers = chatMessages
+    .filter((message) => message.role === "assistant" && message.content?.trim() && !message.failed)
+    .slice(-3);
+  const averageAnswerTokens = recentAnswers.length
+    ? recentAnswers.reduce((total, message) => total + estimateTextTokens(message.content), 0) /
+      recentAnswers.length
+    : limit * 0.1;
+
+  return {
+    limit,
+    usedTokens: systemTokens + messageTokens,
+    reservedTokens: Math.ceil(averageAnswerTokens * 11 / 10),
+  };
+}
+
+function fitHistoryToContextBudget() {
+  const budget = estimateContextBudget();
+  const targetTokens = Math.max(0, budget.limit - budget.reservedTokens);
+  const latestCheckedUserMessage = [...chatMessages]
+    .reverse()
+    .find((message) => message.checked && message.role === "user");
+  let usedTokens = budget.usedTokens;
+  let deselectedCount = 0;
+
+  for (const message of chatMessages) {
+    if (usedTokens <= targetTokens) {
+      break;
+    }
+    if (!message.checked || message === latestCheckedUserMessage) {
+      continue;
+    }
+    message.checked = false;
+    usedTokens -= estimateMessageTokens(message);
+    deselectedCount += 1;
+  }
+
+  return { ...budget, usedTokens, deselectedCount };
+}
+
+fieldEl("num_ctx").addEventListener("input", updateContextIndicator);
+fieldEl("systemPrompt").addEventListener("input", updateContextIndicator);
 
 function readFileAsBase64(file) {
   return new Promise((resolve, reject) => {
@@ -970,6 +1029,16 @@ deselectAllButton.addEventListener("click", () => {
 });
 
 async function streamAssistantReply(historyForContext) {
+  const budget = fitHistoryToContextBudget();
+  if (budget.deselectedCount > 0) {
+    renderChat();
+    triggerAutosave();
+    clearChatStatus(
+      `Context budget: deselected ${budget.deselectedCount} oldest messages; ` +
+      `reserved about ${budget.reservedTokens} tokens for the reply.`
+    );
+  }
+  historyForContext = chatMessages.filter((message) => message.checked);
   const controller = new AbortController();
   activeStreamController = controller;
   chatStopButton.style.display = "";
