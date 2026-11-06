@@ -5,6 +5,10 @@ console.log("AI Ollama Prompt Helper frontend loaded");
 // --- Dark mode: persisted in localStorage, defaults to the OS preference ---
 const THEME_STORAGE_KEY = "theme";
 const themeToggleButton = document.getElementById("theme-toggle");
+const promptLibraryToggleButton = document.getElementById("prompt-library-toggle");
+const promptLibrarySection = document.getElementById("prompt-library-section");
+const appLayout = document.querySelector(".app-layout");
+const PROMPT_LIBRARY_HIDDEN_STORAGE_KEY = "prompt-library-hidden";
 
 function applyTheme(theme) {
   if (theme === "dark") {
@@ -30,6 +34,20 @@ themeToggleButton.addEventListener("click", () => {
 });
 
 initTheme();
+
+function setPromptLibraryHidden(hidden) {
+  promptLibrarySection.hidden = hidden;
+  appLayout.classList.toggle("app-layout--library-hidden", hidden);
+  promptLibraryToggleButton.textContent = hidden ? "Show prompt history" : "Hide prompt history";
+  promptLibraryToggleButton.setAttribute("aria-expanded", String(!hidden));
+}
+
+setPromptLibraryHidden(localStorage.getItem(PROMPT_LIBRARY_HIDDEN_STORAGE_KEY) === "true");
+promptLibraryToggleButton.addEventListener("click", () => {
+  const hidden = !promptLibrarySection.hidden;
+  localStorage.setItem(PROMPT_LIBRARY_HIDDEN_STORAGE_KEY, String(hidden));
+  setPromptLibraryHidden(hidden);
+});
 
 const presetSelect = document.getElementById("preset-select");
 const presetModel = document.getElementById("preset-model");
@@ -312,6 +330,16 @@ const chatLoadButton = document.getElementById("chat-load");
 const chatHistorySelect = document.getElementById("chat-history-select");
 const chatAutosaveStatus = document.getElementById("chat-autosave-status");
 const chatStopButton = document.getElementById("chat-stop");
+const chatEditDialog = document.getElementById("chat-edit-dialog");
+const chatEditTitle = document.getElementById("chat-edit-title");
+const chatEditContent = document.getElementById("chat-edit-content");
+const chatEditAttachments = document.getElementById("chat-edit-attachments");
+const chatEditAddImages = document.getElementById("chat-edit-add-images");
+const chatEditSave = document.getElementById("chat-edit-save");
+const chatEditSaveResend = document.getElementById("chat-edit-save-resend");
+let editingMessage = null;
+let editingMessageIndex = -1;
+let editingImages = [];
 // Set while a streaming reply is in flight so "Stop" can abort it.
 let activeStreamController = null;
 
@@ -521,56 +549,53 @@ function renderChat() {
     deleteBtn.textContent = "Delete";
     deleteBtn.addEventListener("click", () => deleteMessage(index));
 
-    if (message.editing) {
-      const textarea = document.createElement("textarea");
-      textarea.className = "chat-message-edit";
-      textarea.value = message.content;
-      row.append(textarea);
+    const body = renderMessageText(message);
+    row.append(body);
 
-      const saveBtn = document.createElement("button");
-      saveBtn.type = "button";
-      saveBtn.textContent = "Save";
-      saveBtn.addEventListener("click", () => saveEditedMessage(message, textarea.value, index, false));
-      row.append(saveBtn);
-
-      // Only a user message can be resent — resending an edited assistant
-      // reply would mean asking the model to answer itself.
-      if (message.role === "user") {
-        const saveResendBtn = document.createElement("button");
-        saveResendBtn.type = "button";
-        saveResendBtn.textContent = "Save & Resend";
-        saveResendBtn.addEventListener("click", () => saveEditedMessage(message, textarea.value, index, true));
-        row.append(saveResendBtn);
-      }
-
-      const cancelBtn = document.createElement("button");
-      cancelBtn.type = "button";
-      cancelBtn.textContent = "Cancel";
-      cancelBtn.addEventListener("click", () => {
-        message.editing = false;
-        renderChat();
+    if (message.role === "assistant" && message.content) {
+      const copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className = "chat-message-copy";
+      copyBtn.textContent = message.copyStatus === "copied"
+        ? "Copied!"
+        : message.copyStatus === "failed"
+          ? "Copy failed"
+          : "Copy answer";
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(message.content);
+          message.copyStatus = "copied";
+        } catch {
+          message.copyStatus = "failed";
+        }
+        const copyStatus = message.copyStatus;
+        copyBtn.textContent = copyStatus === "copied" ? "Copied!" : "Copy failed";
+        setTimeout(() => {
+          if (message.copyStatus === copyStatus) {
+            message.copyStatus = "";
+            const messageIndex = chatMessages.indexOf(message);
+            const currentCopyBtn = chatHistoryEl.children[messageIndex]?.querySelector(".chat-message-copy");
+            if (currentCopyBtn) {
+              currentCopyBtn.textContent = "Copy answer";
+            }
+          }
+        }, 1500);
       });
-      row.append(cancelBtn);
-    } else {
-      const body = renderMessageText(message);
-      row.append(body);
+      row.append(copyBtn);
+    }
 
-      const editBtn = document.createElement("button");
-      editBtn.type = "button";
-      editBtn.textContent = "Edit";
-      editBtn.addEventListener("click", () => {
-        message.editing = true;
-        renderChat();
-      });
-      row.append(editBtn);
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.textContent = "Edit";
+    editBtn.addEventListener("click", () => openMessageEditor(message, index));
+    row.append(editBtn);
 
-      if (message.role === "assistant" && index === chatMessages.length - 1) {
-        const regenBtn = document.createElement("button");
-        regenBtn.type = "button";
-        regenBtn.textContent = "Regenerate";
-        regenBtn.addEventListener("click", regenerateLast);
-        row.append(regenBtn);
-      }
+    if (message.role === "assistant" && index === chatMessages.length - 1) {
+      const regenBtn = document.createElement("button");
+      regenBtn.type = "button";
+      regenBtn.textContent = "Regenerate";
+      regenBtn.addEventListener("click", regenerateLast);
+      row.append(regenBtn);
     }
     row.append(deleteBtn);
     chatHistoryEl.appendChild(row);
@@ -578,12 +603,118 @@ function renderChat() {
   updateContextIndicator();
 }
 
+function renderEditorAttachments() {
+  chatEditAttachments.innerHTML = "";
+  editingImages.forEach((image, index) => {
+    const item = document.createElement("div");
+    item.className = "chat-edit-attachment";
+    const thumbnail = document.createElement("img");
+    thumbnail.src = image.dataUrl;
+    thumbnail.alt = image.name;
+    const name = document.createElement("span");
+    name.className = "chat-edit-attachment__name";
+    name.textContent = image.name;
+
+    const replaceLabel = document.createElement("label");
+    replaceLabel.className = "btn btn--secondary chat-edit-file-button";
+    replaceLabel.textContent = "Replace";
+    const replaceInput = document.createElement("input");
+    replaceInput.type = "file";
+    replaceInput.accept = "image/*";
+    replaceInput.addEventListener("change", async () => {
+      const file = replaceInput.files?.[0];
+      if (!file) {
+        return;
+      }
+      try {
+        const base64 = await readFileAsBase64(file);
+        editingImages[index] = { name: file.name, base64, dataUrl: `data:${file.type};base64,${base64}` };
+        renderEditorAttachments();
+      } catch (error) {
+        setChatError(`Could not read image: ${error}`);
+      }
+    });
+    replaceLabel.appendChild(replaceInput);
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "btn btn--danger";
+    removeButton.textContent = "Remove";
+    removeButton.addEventListener("click", () => {
+      editingImages.splice(index, 1);
+      renderEditorAttachments();
+    });
+    item.append(thumbnail, name, replaceLabel, removeButton);
+    chatEditAttachments.appendChild(item);
+  });
+}
+
+function openMessageEditor(message, index) {
+  editingMessage = message;
+  editingMessageIndex = index;
+  chatEditContent.value = message.content ?? "";
+  editingImages = (message.images ?? []).map((dataUrl, imageIndex) => {
+    const match = /^data:([^;,]+);base64,(.+)$/.exec(dataUrl);
+    return { name: `Image ${imageIndex + 1}`, base64: match?.[2] ?? "", dataUrl };
+  });
+  chatEditTitle.textContent = message.role === "assistant" ? "Edit assistant response" : "Edit user message";
+  chatEditSaveResend.hidden = message.role !== "user";
+  renderEditorAttachments();
+  chatEditDialog.showModal();
+  chatEditContent.focus();
+}
+
+chatEditAddImages.addEventListener("change", async () => {
+  const imageFiles = [...(chatEditAddImages.files ?? [])].filter((file) => file.type.startsWith("image/"));
+  try {
+    for (const file of imageFiles) {
+      const base64 = await readFileAsBase64(file);
+      editingImages.push({ name: file.name, base64, dataUrl: `data:${file.type};base64,${base64}` });
+    }
+    renderEditorAttachments();
+  } catch (error) {
+    setChatError(`Could not read image: ${error}`);
+  }
+  chatEditAddImages.value = "";
+});
+
+document.getElementById("chat-edit-cancel").addEventListener("click", () => chatEditDialog.close());
+document.getElementById("chat-edit-close").addEventListener("click", () => chatEditDialog.close());
+chatEditDialog.addEventListener("close", () => {
+  editingMessage = null;
+  editingMessageIndex = -1;
+  editingImages = [];
+  chatEditContent.value = "";
+  chatEditAttachments.innerHTML = "";
+});
+
+function commitMessageEdit(resend) {
+  if (!editingMessage) {
+    return;
+  }
+  const message = editingMessage;
+  const index = editingMessageIndex;
+  const content = chatEditContent.value;
+  const images = editingImages.map((image) => ({ ...image }));
+  chatEditDialog.close();
+  saveEditedMessage(message, content, index, resend, images);
+}
+
+chatEditSave.addEventListener("click", () => commitMessageEdit(false));
+chatEditSaveResend.addEventListener("click", () => commitMessageEdit(true));
+
 // Saving an edit just updates the text in place. Saving-and-resending a user
 // message additionally drops every message after it (the conversation
 // branches from here) and immediately asks the model for a fresh reply.
-function saveEditedMessage(message, newContent, index, resend) {
+function saveEditedMessage(message, newContent, index, resend, images) {
   message.content = newContent;
-  message.editing = false;
+  if (images.length > 0) {
+    message.images = images.map((image) => image.dataUrl);
+    message.imagesBase64 = images.map((image) => image.base64);
+  } else {
+    delete message.images;
+    delete message.imagesBase64;
+  }
   if (resend && message.role === "user") {
     chatMessages = chatMessages.slice(0, index + 1);
     renderChat();

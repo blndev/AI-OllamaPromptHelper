@@ -402,7 +402,7 @@ During a multi-pass request, the UI should show distinct status phases: `Analyzi
 
 ### Layout: independently scrollable prompt library
 
-The extracted-prompt library panel currently scrolls together with the page/chat history. Version 2 should give the prompt library its own scroll container (fixed/constrained height, internal overflow) so scrolling through a long chat history does not move the prompt library out of view, and vice versa — scrolling the prompt library must not scroll the chat. Both panels keep their own scroll position independently when switching topics or receiving new messages/extracted prompts.
+The prompt history sidebar can be hidden from the chat toolbar; its visibility preference is retained by the browser. When visible, the sidebar stays within the viewport and its entries have a dedicated scrollbar, independent of the chat history scrollbar.
 
 ### Acceptance criteria
 
@@ -416,6 +416,14 @@ The extracted-prompt library panel currently scrolls together with the page/chat
 * The chat history and the prompt library panel each scroll independently, with their own scrollbar and scroll position, regardless of content length in the other panel.
 
 ## Changelog
+
+### v1.2.3
+* The Topic Prompt History sidebar can now be hidden or shown from the chat controls, with the preference retained across page reloads.
+* The sidebar stays fixed within the desktop viewport and its prompt entries scroll independently from chat history.
+
+### v1.2.2
+* Chat messages from both the user and assistant now open in a spacious editor dialog; image attachments can be added, replaced or removed before saving.
+* Saving edited user messages can still resend the revised message and its updated images.
 
 ### v1.2.0
 * Multiple images can now be attached to a single chat message (previously limited to one).

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>AI Ollama Prompt Helper</title>
-  <link rel="stylesheet" href="/style.css?v=8">
+  <link rel="stylesheet" href="/style.css?v=12">
 </head>
 <body>
   <header class="app-header">
@@ -69,6 +69,7 @@
           <button type="button" id="chat-deselect-all" class="btn btn--secondary">Deselect all</button>
           <button type="button" id="chat-new" class="btn btn--secondary">New chat</button>
           <button type="button" id="chat-save" class="btn btn--secondary">Save history</button>
+          <button type="button" id="prompt-library-toggle" class="btn btn--secondary" aria-controls="prompt-library-section" aria-expanded="true">Hide prompt history</button>
           <select id="chat-history-select"><option value="">-- select saved chat --</option></select>
           <button type="button" id="chat-load" class="btn btn--secondary">Load</button>
           <span id="chat-context-indicator" class="pill"></span>
@@ -115,6 +116,32 @@
     <img id="image-lightbox-img" src="" alt="Full-size attached image">
   </div>
 
-  <script src="/app.js?v=19"></script>
+  <dialog id="chat-edit-dialog" class="chat-edit-dialog" aria-labelledby="chat-edit-title">
+    <div class="chat-edit-dialog__content">
+      <header class="chat-edit-dialog__header">
+        <h2 id="chat-edit-title">Edit message</h2>
+        <button type="button" id="chat-edit-close" class="chat-edit-dialog__close" aria-label="Close">&times;</button>
+      </header>
+      <label class="chat-edit-dialog__label" for="chat-edit-content">Message</label>
+      <textarea id="chat-edit-content" spellcheck="true"></textarea>
+      <section class="chat-edit-dialog__attachments" aria-labelledby="chat-edit-attachments-title">
+        <div class="chat-edit-dialog__attachments-header">
+          <h3 id="chat-edit-attachments-title">Images</h3>
+          <label class="btn btn--secondary chat-edit-file-button" for="chat-edit-add-images">
+            Add images
+            <input id="chat-edit-add-images" type="file" accept="image/*" multiple>
+          </label>
+        </div>
+        <div id="chat-edit-attachments"></div>
+      </section>
+      <footer class="chat-edit-dialog__actions">
+        <button type="button" id="chat-edit-cancel" class="btn btn--secondary">Cancel</button>
+        <button type="button" id="chat-edit-save-resend" class="btn btn--secondary">Save &amp; Resend</button>
+        <button type="button" id="chat-edit-save" class="btn btn--primary">Save</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <script src="/app.js?v=21"></script>
 </body>
 </html>
