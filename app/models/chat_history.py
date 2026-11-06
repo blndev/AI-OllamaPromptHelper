@@ -14,6 +14,7 @@ class ChatHistoryMessage(BaseModel):
     thinking: str | None = None
     images: list[str] | None = None
     checked: bool = True
+    bookmarked: bool = False
 
 
 class ChatHistory(BaseModel):

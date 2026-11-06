@@ -417,6 +417,9 @@ The prompt history sidebar can be hidden from the chat toolbar; its visibility p
 
 ## Changelog
 
+### v1.2.5
+* Chat messages from either the user or assistant can be bookmarked, highlighted, and retained in saved chat histories.
+
 ### v1.2.4
 * Chat and thinking responses now render common Markdown formatting while the editor continues to show and preserve the raw source text.
 * Thinking responses can now be edited separately from the assistant's final answer, and are preserved in saved chat histories.

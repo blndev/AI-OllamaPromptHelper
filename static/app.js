@@ -635,6 +635,7 @@ function renderChat() {
     const row = document.createElement("div");
     row.className = "chat-message";
     row.dataset.role = message.role;
+    row.dataset.bookmarked = String(Boolean(message.bookmarked));
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -737,6 +738,17 @@ function renderChat() {
     editBtn.textContent = "Edit";
     editBtn.addEventListener("click", () => openMessageEditor(message, index));
     row.append(editBtn);
+
+    const bookmarkBtn = document.createElement("button");
+    bookmarkBtn.type = "button";
+    bookmarkBtn.textContent = message.bookmarked ? "★ Bookmarked" : "☆ Bookmark";
+    bookmarkBtn.setAttribute("aria-pressed", String(Boolean(message.bookmarked)));
+    bookmarkBtn.addEventListener("click", () => {
+      message.bookmarked = !message.bookmarked;
+      triggerAutosave();
+      renderChat();
+    });
+    row.append(bookmarkBtn);
 
     if (message.role === "assistant" && index === chatMessages.length - 1) {
       const regenBtn = document.createElement("button");
@@ -1303,6 +1315,7 @@ function currentHistoryPayload() {
       thinking: m.thinking ?? null,
       images: m.images ?? null,
       checked: m.checked,
+      bookmarked: Boolean(m.bookmarked),
     })),
   };
 }
@@ -1328,6 +1341,7 @@ function applyHistory(history) {
     thinking: m.thinking ?? null,
     images: m.images ?? null,
     checked: m.checked ?? true,
+    bookmarked: m.bookmarked ?? false,
   }));
   renderChat();
 }

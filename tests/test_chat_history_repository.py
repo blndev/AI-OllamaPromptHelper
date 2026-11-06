@@ -27,6 +27,7 @@ def _sample_history() -> ChatHistory:
                 content="Hi there",
                 thinking="Reasoning text",
                 checked=False,
+                bookmarked=True,
             ),
         ],
     )

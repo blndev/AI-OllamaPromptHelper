@@ -39,6 +39,7 @@ def _sample_history_payload() -> dict:
                 "thinking": None,
                 "images": None,
                 "checked": True,
+                "bookmarked": False,
             },
             {
                 "role": "assistant",
@@ -46,6 +47,7 @@ def _sample_history_payload() -> dict:
                 "thinking": "Reasoning text",
                 "images": None,
                 "checked": False,
+                "bookmarked": True,
             },
         ],
     }

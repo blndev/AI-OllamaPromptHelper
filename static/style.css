@@ -15,6 +15,8 @@
   --thinking-bg: #fef9e7;
   --thinking-border: #f0dc9c;
   --thinking-text: #92720a;
+  --bookmark-bg: #fff3cc;
+  --bookmark-border: #d5a522;
   --input-bg: #ffffff;
   --code-bg: #eef1f6;
   --code-text: #1f2937;
@@ -42,6 +44,8 @@
   --thinking-bg: #3f351a;
   --thinking-border: #6b5628;
   --thinking-text: #f0dc9c;
+  --bookmark-bg: #40371f;
+  --bookmark-border: #c9a23a;
   --input-bg: #1e293b;
   --code-bg: #334155;
   --code-text: #e2e8f0;
@@ -519,6 +523,12 @@ textarea {
 
 .chat-message[data-role="assistant"] {
   align-self: flex-start;
+}
+
+.chat-message[data-bookmarked="true"] {
+  border: 1px solid var(--bookmark-border);
+  border-left: 4px solid var(--bookmark-border);
+  background: var(--bookmark-bg);
 }
 
 .chat-message span {
