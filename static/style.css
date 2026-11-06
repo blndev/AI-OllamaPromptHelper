@@ -786,7 +786,14 @@ textarea {
   }
 }
 
+.chat-thinking-wrap {
+  position: relative;
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
 .chat-thinking {
+  position: relative;
   background: var(--thinking-bg);
   border: 1px solid var(--thinking-border);
   border-radius: 6px;
@@ -797,9 +804,19 @@ textarea {
 }
 
 .chat-thinking summary {
+  padding-right: 6rem;
   font-style: normal;
   font-weight: 600;
   cursor: pointer;
+}
+
+.chat-thinking-edit {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.3rem;
+  padding: 0.05rem 0.2rem;
+  font-size: 0.72rem !important;
+  line-height: 1.2;
 }
 
 .chat-thinking-text {

@@ -647,6 +647,8 @@ function renderChat() {
     row.append(checkbox);
 
     if (message.thinking) {
+      const thinkingWrap = document.createElement("div");
+      thinkingWrap.className = "chat-thinking-wrap";
       const details = document.createElement("details");
       details.className = "chat-thinking";
       // Kept on the message so streaming re-renders don't collapse it again.
@@ -663,14 +665,14 @@ function renderChat() {
       summary.textContent = "Thinking";
       const thinkingContent = document.createDocumentFragment();
       appendMarkdown(thinkingContent, message.thinking, "chat-thinking-text markdown-content");
-      details.append(summary, thinkingContent);
-      row.append(details);
-
       const editThinkingBtn = document.createElement("button");
       editThinkingBtn.type = "button";
+      editThinkingBtn.className = "chat-thinking-edit";
       editThinkingBtn.textContent = "Edit thinking";
       editThinkingBtn.addEventListener("click", () => openMessageEditor(message, index, "thinking"));
-      row.append(editThinkingBtn);
+      details.append(summary, thinkingContent);
+      thinkingWrap.append(details, editThinkingBtn);
+      row.append(thinkingWrap);
     }
 
     if (message.images?.length) {
