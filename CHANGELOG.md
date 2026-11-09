@@ -2,6 +2,7 @@
 
 ### v1.9.0
 * The interface now follows the browser language for English, Spanish, German, Italian or French, with English as the fallback. Translations are stored in separate JSON files.
+* Aligned the bookmark icon and label with neighboring chat actions.
 
 ### v1.8.0
 * Added a chat-toolbar button that jumps to the next bookmarked message and wraps back to the first bookmark.
