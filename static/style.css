@@ -447,6 +447,8 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  max-height: 72px;
+  overflow-y: auto;
   margin-top: 0.4rem;
 }
 
@@ -503,6 +505,10 @@ textarea {
   background: var(--bg);
   border-radius: 8px;
   margin-bottom: 0.75rem;
+}
+
+#chat-status:empty {
+  display: none;
 }
 
 .chat-message {
@@ -968,6 +974,64 @@ textarea {
 
 .app-layout--library-hidden {
   grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 901px) {
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .app-header {
+    flex: 0 0 auto;
+  }
+
+  .app-layout {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+    align-items: stretch;
+  }
+
+  .app-main {
+    min-height: 0;
+  }
+
+  #preset-editor {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: 35%;
+    overflow-y: auto;
+  }
+
+  #chat {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  #chat-history {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+  }
+
+  #chat-form,
+  #chat-status,
+  #chat-undo-toast {
+    flex: 0 0 auto;
+  }
+
+  #prompt-library-section {
+    top: 0;
+    height: 100%;
+    min-height: 0;
+  }
 }
 
 @media (max-width: 900px) {
