@@ -311,6 +311,7 @@ async function loadTopicSuggestions() {
 
 // --- Chat (Phase 5/6: streaming, checkboxes, undo, regenerate, images, thinking, tuning) ---
 const chatHistoryEl = document.getElementById("chat-history");
+const nextBookmarkButton = document.getElementById("chat-next-bookmark");
 const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 const chatImageDropzone = document.getElementById("chat-image-dropzone");
@@ -391,6 +392,7 @@ function clearChatStatus(message = "") {
 }
 
 let chatMessages = []; // { id, role, content, checked, images, thinking }
+let lastNavigatedBookmarkId = null;
 let nextMessageId = 1;
 let lastDeleted = null; // { message, index }
 let undoTimer = null;
@@ -695,6 +697,7 @@ function renderChat() {
     row.className = "chat-message";
     row.dataset.role = message.role;
     row.dataset.bookmarked = String(Boolean(message.bookmarked));
+    row.dataset.messageId = String(message.id);
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -820,7 +823,42 @@ function renderChat() {
     chatHistoryEl.appendChild(row);
   });
   updateContextIndicator();
+  updateNextBookmarkButton();
 }
+
+function updateNextBookmarkButton() {
+  const hasBookmarks = chatMessages.some((message) => message.bookmarked);
+  nextBookmarkButton.disabled = !hasBookmarks;
+  if (!hasBookmarks) {
+    lastNavigatedBookmarkId = null;
+  }
+}
+
+function jumpToNextBookmark() {
+  const bookmarkedMessages = chatMessages.filter((message) => message.bookmarked);
+  if (bookmarkedMessages.length === 0) {
+    updateNextBookmarkButton();
+    return;
+  }
+
+  const currentIndex = bookmarkedMessages.findIndex(
+    (message) => message.id === lastNavigatedBookmarkId
+  );
+  const nextMessage = bookmarkedMessages[(currentIndex + 1) % bookmarkedMessages.length];
+  const targetRow = [...chatHistoryEl.children].find(
+    (row) => row.dataset.messageId === String(nextMessage.id)
+  );
+  if (!targetRow) {
+    return;
+  }
+
+  lastNavigatedBookmarkId = nextMessage.id;
+  const containerTop = chatHistoryEl.getBoundingClientRect().top;
+  const targetTop = targetRow.getBoundingClientRect().top;
+  chatHistoryEl.scrollTop += targetTop - containerTop;
+}
+
+nextBookmarkButton.addEventListener("click", jumpToNextBookmark);
 
 function renderEditorAttachments() {
   chatEditAttachments.innerHTML = "";

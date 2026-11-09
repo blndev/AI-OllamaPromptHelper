@@ -1,5 +1,8 @@
 # Changelog
 
+### v1.8.0
+* Added a chat-toolbar button that jumps to the next bookmarked message and wraps back to the first bookmark.
+
 ### v1.7.0
 * Before generating a reply, the app automatically deselects the oldest messages when the estimated context exceeds `num_ctx` minus an output reserve of 110% of the average size of the latest three assistant answers. The newest checked user message is retained.
 
