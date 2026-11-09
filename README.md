@@ -9,11 +9,15 @@ Vibe Coded
 
 * **Chat-based prompt workshop** — iteratively refine prompts for image, video and text generators through a natural conversation with your local LLM
 * **Fully editable presets** — switch, create and edit system prompt / model / tuning presets right from the UI, no config file editing required
-* **Multimodal input** — attach images by drag and drop or paste them from the clipboard for vision-capable models
-* **Visible "thinking"** — reasoning output is shown separately from the final answer when a model supports it
-* **Fine-grained context control** — check/uncheck individual messages to control exactly what's sent to the model, with a live context-size indicator
+* **Multimodal input** — attach multiple images by drag and drop or paste them from the clipboard, preview them at full size, and add, replace or remove attachments while editing
+* **Editable answers and reasoning** — format Markdown responses and edit user messages, assistant answers and thinking text; edited user messages can be saved and resent
+* **Visible "thinking"** — reasoning output is shown separately from the final answer when a model supports it, and can be edited independently
+* **Fine-grained context control** — select or deselect all messages, deselect messages above an assistant reply, and automatically free space by deselecting oldest messages while reserving 110% of the average token estimate of the last three assistant answers
+* **Bookmarks** — mark useful user or assistant messages and jump through them from the chat toolbar
 * **Automatic prompt extraction** — recognized prompts are pulled out of the conversation and collected into per-topic Markdown libraries, ready to copy with one click
-* **Autosave & manual save/load** — never lose a chat session, with undo for accidental deletions
+* **Independent prompt history** — hide the topic prompt history when not needed; its list scrolls independently from the chat
+* **Autosave & manual save/load** — preserve chat sessions, confirm before starting a new chat, and undo accidental deletions
+* **Localized interface** — automatically uses the browser language in English, Spanish, German, Italian or French, with English as the fallback
 * **Local-first & private** — everything runs on your machine (or your own server); no data leaves your network unless you point it at a remote Ollama instance
 * **Ready-to-run container image** — pull it from GHCR and get going with Docker/Podman/Docker Compose in minutes
 
@@ -232,6 +236,64 @@ podman run -d --name ai-ollama-prompt-helper \
 `--userns=keep-id` is required here: without it, Podman's rootless UID remapping makes the container's `appuser` (uid `1000`) resolve to a *different*, unwritable UID on the host, so the app fails to write presets/chat history even though the bind mounts look correct. `--userns=keep-id` maps `appuser` back to your current host user, which already owns the `presets`/`output` folders created in Step 1. The `:Z` suffix relabels the volumes for SELinux (common on Fedora/RHEL); omit it if not applicable. `--add-host=host.docker.internal:host-gateway` requires Podman 3.2+ — alternatively use `--network=host` on Linux to reach Ollama on the host's `localhost:11434` directly (less isolation, no port mapping needed, and `-p`/`--add-host` are then unnecessary).
 
 Then open **http://localhost:8000/** in your browser (or **http://127.0.0.1:8000/** with `--network=host`). Container health can be checked at `/api/health` (also used by the image's built-in `HEALTHCHECK`), e.g. `docker logs ai-ollama-prompt-helper` / `podman logs ai-ollama-prompt-helper` if the container exits immediately.
+
+### Updating an existing container
+
+The commands below pull the current `latest` image, then recreate the container. A stopped container keeps using its old image, so `docker start` or `podman start` alone does **not** apply the update. Keep the same bind mounts and runtime options when recreating it; the `presets`, `output` and `config.local.json` data remain on the host.
+
+**Docker (Windows, PowerShell):**
+```powershell
+docker pull ghcr.io/blndev/ai-ollamaprompthelper:latest
+docker stop ai-ollama-prompt-helper
+docker rm ai-ollama-prompt-helper
+docker run -d --name ai-ollama-prompt-helper `
+  -p 8000:8000 `
+  -v "${PWD}/presets:/app/presets" `
+  -v "${PWD}/output:/app/output" `
+  -v "${PWD}/config.local.json:/app/config.local.json:ro" `
+  --add-host=host.docker.internal:host-gateway `
+  ghcr.io/blndev/ai-ollamaprompthelper:latest
+```
+
+**Docker (Linux / macOS, bash):**
+```bash
+docker pull ghcr.io/blndev/ai-ollamaprompthelper:latest
+docker stop ai-ollama-prompt-helper
+docker rm ai-ollama-prompt-helper
+docker run -d --name ai-ollama-prompt-helper \
+  -p 8000:8000 \
+  -v "$(pwd)/presets:/app/presets" \
+  -v "$(pwd)/output:/app/output" \
+  -v "$(pwd)/config.local.json:/app/config.local.json:ro" \
+  --add-host=host.docker.internal:host-gateway \
+  ghcr.io/blndev/ai-ollamaprompthelper:latest
+```
+
+If the app was started with additional options (for example `-e OLLAMA_URL=...`), include those options again when recreating it.
+If you configured Ollama with `OLLAMA_URL` instead of `config.local.json`, remove the `-v ...config.local.json...` mount from the example command and pass the same `-e OLLAMA_URL=...` option used previously.
+
+**Docker Compose:** from the directory containing `docker-compose.yml`, pull and recreate only the app service while leaving Ollama running:
+```bash
+docker compose pull app
+docker compose up -d --no-deps app
+```
+To update both the app and Ollama images, use `docker compose pull` followed by `docker compose up -d`.
+
+**Podman (Linux, rootless):**
+```bash
+podman pull ghcr.io/blndev/ai-ollamaprompthelper:latest
+podman stop ai-ollama-prompt-helper
+podman rm ai-ollama-prompt-helper
+podman run -d --name ai-ollama-prompt-helper \
+  --userns=keep-id \
+  -p 8000:8000 \
+  -v ./presets:/app/presets:Z \
+  -v ./output:/app/output:Z \
+  -v ./config.local.json:/app/config.local.json:ro,Z \
+  --add-host=host.docker.internal:host-gateway \
+  ghcr.io/blndev/ai-ollamaprompthelper:latest
+```
+If the original Podman container used different options (for example `--network=host` or `OLLAMA_URL`), keep those options and adjust the command accordingly. The host folders remain in place when the container is removed and recreated.
 
 ### Docker Compose (app + Ollama)
 A [docker-compose.yml](docker-compose.yml) is provided that starts both the app (pulled from GHCR as `ghcr.io/blndev/ai-ollamaprompthelper:latest`) and an `ollama` container, with a named volume so pulled models persist across restarts.
