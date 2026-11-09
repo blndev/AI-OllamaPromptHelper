@@ -9,11 +9,15 @@ Vibe Coded
 
 * **Chat-based prompt workshop** — iteratively refine prompts for image, video and text generators through a natural conversation with your local LLM
 * **Fully editable presets** — switch, create and edit system prompt / model / tuning presets right from the UI, no config file editing required
-* **Multimodal input** — attach images by drag and drop or paste them from the clipboard for vision-capable models
-* **Visible "thinking"** — reasoning output is shown separately from the final answer when a model supports it
-* **Fine-grained context control** — check/uncheck individual messages to control exactly what's sent to the model, with a live context-size indicator
+* **Multimodal input** — attach multiple images by drag and drop or paste them from the clipboard, preview them at full size, and add, replace or remove attachments while editing
+* **Editable answers and reasoning** — format Markdown responses and edit user messages, assistant answers and thinking text; edited user messages can be saved and resent
+* **Visible "thinking"** — reasoning output is shown separately from the final answer when a model supports it, and can be edited independently
+* **Fine-grained context control** — select or deselect all messages, deselect messages above an assistant reply, and automatically free space by deselecting oldest messages while reserving 110% of the average token estimate of the last three assistant answers
+* **Bookmarks** — mark useful user or assistant messages and jump through them from the chat toolbar
 * **Automatic prompt extraction** — recognized prompts are pulled out of the conversation and collected into per-topic Markdown libraries, ready to copy with one click
-* **Autosave & manual save/load** — never lose a chat session, with undo for accidental deletions
+* **Independent prompt history** — hide the topic prompt history when not needed; its list scrolls independently from the chat
+* **Autosave & manual save/load** — preserve chat sessions, confirm before starting a new chat, and undo accidental deletions
+* **Localized interface** — automatically uses the browser language in English, Spanish, German, Italian or French, with English as the fallback
 * **Local-first & private** — everything runs on your machine (or your own server); no data leaves your network unless you point it at a remote Ollama instance
 * **Ready-to-run container image** — pull it from GHCR and get going with Docker/Podman/Docker Compose in minutes
 
@@ -144,6 +148,8 @@ A [Dockerfile](Dockerfile) is provided. It builds a lightweight container runnin
 
 `presetFolder` (`./presets`) and `outputFolder` (`./output`) resolve inside the container's `/app` working directory, so mount them as volumes to persist presets and chat/prompt output across container restarts and rebuilds.
 
+Mounting an *empty* host folder over `/app/presets` would otherwise hide the bundled example presets that ship inside the image, leaving you with zero presets on first start. To avoid that, the image's [entrypoint.sh](entrypoint.sh) copies the bundled example presets into `/app/presets` on container start, but **only if that folder is still empty** — it never overwrites presets you already created/edited or have previously seeded. So the first `docker run`/`podman run`/`docker compose up` against the empty `./presets` folder created in Step 1 below automatically populates it with the example presets; later restarts leave your (now non-empty) preset folder untouched.
+
 ### Connecting the container to a local host Ollama server (non-container)
 
 When Ollama runs directly on your host machine (not in Docker), keep two crucial points in mind:
@@ -164,32 +170,36 @@ When Ollama runs directly on your host machine (not in Docker), keep two crucial
    * On **Windows and macOS (Docker Desktop)**, `host.docker.internal` resolves automatically.
    * On **Linux (Docker Engine / Podman)**, pass `--add-host=host.docker.internal:host-gateway` (or use `extra_hosts` in compose).
 
-### Pull the pre-built image from GitHub (GHCR)
-Every push to `main` (and tags/PRs, see below) is built by [.github/workflows/docker-build.yml](.github/workflows/docker-build.yml) and published to the GitHub Container Registry — no local build required:
-```powershell
-docker pull ghcr.io/blndev/ai-ollamaprompthelper:latest
-# or a specific version tag, e.g.
-docker pull ghcr.io/blndev/ai-ollamaprompthelper:v1.0.0
-```
+All commands below use the pre-built GHCR image tag `ghcr.io/blndev/ai-ollamaprompthelper:latest` directly, so `docker run`/`podman run` pull it automatically if it isn't present locally yet — no separate `pull` step is required. Replace `:latest` with a specific version tag (e.g. `:v1.2.0`) to pin a release.
 
-### Build the image
-```powershell
-docker build -t ai-ollama-prompt-helper .
+If you'd rather build the image yourself instead of using GHCR, build it under the *same* tag so the run commands below don't need to change:
+```bash
+docker build -t ghcr.io/blndev/ai-ollamaprompthelper:latest .
 # or
-podman build -t ai-ollama-prompt-helper .
+podman build -t ghcr.io/blndev/ai-ollamaprompthelper:latest .
 ```
 
-### Create the volumes / override file
+### Step 1 — Create the folders and `config.local.json`
+
+**Windows (PowerShell):**
 ```powershell
-mkdir presets, output -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path presets, output | Out-Null
 @'
 { "ollamaUrl": "http://host.docker.internal:11434" }
-'@ | Set-Content config.local.json
+'@ | Set-Content -Encoding utf8 config.local.json
 ```
 
-### Run the container against host Ollama
+**Linux / macOS (bash/zsh):**
+```bash
+mkdir -p presets output
+cat > config.local.json <<'EOF'
+{ "ollamaUrl": "http://host.docker.internal:11434" }
+EOF
+```
 
-**Docker (Windows/macOS/Linux):**
+### Step 2 — Run the container against host Ollama
+
+**Docker (Windows, PowerShell):**
 ```powershell
 docker run -d --name ai-ollama-prompt-helper `
   -p 8000:8000 `
@@ -197,40 +207,125 @@ docker run -d --name ai-ollama-prompt-helper `
   -v ${PWD}/output:/app/output `
   -v ${PWD}/config.local.json:/app/config.local.json:ro `
   --add-host=host.docker.internal:host-gateway `
-  ai-ollama-prompt-helper
+  ghcr.io/blndev/ai-ollamaprompthelper:latest
 ```
-*(Alternatively, you can pass `-e OLLAMA_URL=http://host.docker.internal:11434` instead of mounting `config.local.json`).*
+
+**Docker (Linux / macOS, bash):**
+```bash
+docker run -d --name ai-ollama-prompt-helper \
+  -p 8000:8000 \
+  -v "$(pwd)/presets:/app/presets" \
+  -v "$(pwd)/output:/app/output" \
+  -v "$(pwd)/config.local.json:/app/config.local.json:ro" \
+  --add-host=host.docker.internal:host-gateway \
+  ghcr.io/blndev/ai-ollamaprompthelper:latest
+```
+*(Alternatively, you can pass `-e OLLAMA_URL=http://host.docker.internal:11434` instead of mounting `config.local.json`.)* The container runs as the non-root `appuser` (uid `1000`); if `docker run` reports permission errors writing to `presets`/`output` on Linux, align ownership with `sudo chown -R 1000:1000 presets output`.
 
 **Podman (Linux, rootless):**
 ```bash
 podman run -d --name ai-ollama-prompt-helper \
+  --userns=keep-id \
   -p 8000:8000 \
   -v ./presets:/app/presets:Z \
   -v ./output:/app/output:Z \
   -v ./config.local.json:/app/config.local.json:ro,Z \
   --add-host=host.docker.internal:host-gateway \
-  ai-ollama-prompt-helper
+  ghcr.io/blndev/ai-ollamaprompthelper:latest
 ```
-The `:Z` suffix relabels the volumes for SELinux (common on Fedora/RHEL); omit it if not applicable. `--add-host=host.docker.internal:host-gateway` requires Podman 3.2+ — alternatively use `--network=host` on Linux to reach Ollama on the host's `localhost:11434` directly (less isolation, no port mapping needed).
+`--userns=keep-id` is required here: without it, Podman's rootless UID remapping makes the container's `appuser` (uid `1000`) resolve to a *different*, unwritable UID on the host, so the app fails to write presets/chat history even though the bind mounts look correct. `--userns=keep-id` maps `appuser` back to your current host user, which already owns the `presets`/`output` folders created in Step 1. The `:Z` suffix relabels the volumes for SELinux (common on Fedora/RHEL); omit it if not applicable. `--add-host=host.docker.internal:host-gateway` requires Podman 3.2+ — alternatively use `--network=host` on Linux to reach Ollama on the host's `localhost:11434` directly (less isolation, no port mapping needed, and `-p`/`--add-host` are then unnecessary).
 
-Then open **http://localhost:8000/** in your browser. Container health can be checked at `/api/health` (also used by the image's built-in `HEALTHCHECK`).
+Then open **http://localhost:8000/** in your browser (or **http://127.0.0.1:8000/** with `--network=host`). Container health can be checked at `/api/health` (also used by the image's built-in `HEALTHCHECK`), e.g. `docker logs ai-ollama-prompt-helper` / `podman logs ai-ollama-prompt-helper` if the container exits immediately.
+
+### Updating an existing container
+
+The commands below pull the current `latest` image, then recreate the container. A stopped container keeps using its old image, so `docker start` or `podman start` alone does **not** apply the update. Keep the same bind mounts and runtime options when recreating it; the `presets`, `output` and `config.local.json` data remain on the host.
+
+**Docker (Windows, PowerShell):**
+```powershell
+docker pull ghcr.io/blndev/ai-ollamaprompthelper:latest
+docker stop ai-ollama-prompt-helper
+docker rm ai-ollama-prompt-helper
+docker run -d --name ai-ollama-prompt-helper `
+  -p 8000:8000 `
+  -v "${PWD}/presets:/app/presets" `
+  -v "${PWD}/output:/app/output" `
+  -v "${PWD}/config.local.json:/app/config.local.json:ro" `
+  --add-host=host.docker.internal:host-gateway `
+  ghcr.io/blndev/ai-ollamaprompthelper:latest
+```
+
+**Docker (Linux / macOS, bash):**
+```bash
+docker pull ghcr.io/blndev/ai-ollamaprompthelper:latest
+docker stop ai-ollama-prompt-helper
+docker rm ai-ollama-prompt-helper
+docker run -d --name ai-ollama-prompt-helper \
+  -p 8000:8000 \
+  -v "$(pwd)/presets:/app/presets" \
+  -v "$(pwd)/output:/app/output" \
+  -v "$(pwd)/config.local.json:/app/config.local.json:ro" \
+  --add-host=host.docker.internal:host-gateway \
+  ghcr.io/blndev/ai-ollamaprompthelper:latest
+```
+
+If the app was started with additional options (for example `-e OLLAMA_URL=...`), include those options again when recreating it.
+If you configured Ollama with `OLLAMA_URL` instead of `config.local.json`, remove the `-v ...config.local.json...` mount from the example command and pass the same `-e OLLAMA_URL=...` option used previously.
+
+**Docker Compose:** from the directory containing `docker-compose.yml`, pull and recreate only the app service while leaving Ollama running:
+```bash
+docker compose pull app
+docker compose up -d --no-deps app
+```
+To update both the app and Ollama images, use `docker compose pull` followed by `docker compose up -d`.
+
+**Podman (Linux, rootless):**
+```bash
+podman pull ghcr.io/blndev/ai-ollamaprompthelper:latest
+podman stop ai-ollama-prompt-helper
+podman rm ai-ollama-prompt-helper
+podman run -d --name ai-ollama-prompt-helper \
+  --userns=keep-id \
+  -p 8000:8000 \
+  -v ./presets:/app/presets:Z \
+  -v ./output:/app/output:Z \
+  -v ./config.local.json:/app/config.local.json:ro,Z \
+  --add-host=host.docker.internal:host-gateway \
+  ghcr.io/blndev/ai-ollamaprompthelper:latest
+```
+If the original Podman container used different options (for example `--network=host` or `OLLAMA_URL`), keep those options and adjust the command accordingly. The host folders remain in place when the container is removed and recreated.
 
 ### Docker Compose (app + Ollama)
-A [docker-compose.yml](docker-compose.yml) is provided that starts both the app (pulled from GHCR) and an `ollama` container, with a named volume so pulled models persist across restarts.
+A [docker-compose.yml](docker-compose.yml) is provided that starts both the app (pulled from GHCR as `ghcr.io/blndev/ai-ollamaprompthelper:latest`) and an `ollama` container, with a named volume so pulled models persist across restarts.
 
+**Windows (PowerShell):**
 ```powershell
 # 1. Create the local folders used by the app container
-mkdir presets, output -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path presets, output | Out-Null
 
 # 2. Point the app at the ollama service from the same compose network
 @'
 { "ollamaUrl": "http://ollama:11434" }
-'@ | Set-Content config.local.json
+'@ | Set-Content -Encoding utf8 config.local.json
 
 # 3. Start both containers
 docker compose up -d
 ```
-On Linux/macOS the same steps apply with `mkdir -p presets output` and a heredoc/`echo` instead of the PowerShell snippet above.
+
+**Linux / macOS (bash):**
+```bash
+# 1. Create the local folders used by the app container
+mkdir -p presets output
+
+# 2. Point the app at the ollama service from the same compose network
+cat > config.local.json <<'EOF'
+{ "ollamaUrl": "http://ollama:11434" }
+EOF
+
+# 3. Start both containers
+docker compose up -d
+```
+As with plain `docker run` above, the app container writes to `presets`/`output` as uid `1000`; if `docker compose up` logs permission errors on Linux, run `sudo chown -R 1000:1000 presets output`. If you use `podman-compose` instead of Docker Compose, add `userns_mode: "keep-id"` under the `app` service in [docker-compose.yml](docker-compose.yml) for the same reason described in the Podman section above.
 
 Once both containers are healthy, open **http://localhost:8000/** in your browser. Pull a model into the `ollama` container so it's available to the app, e.g.:
 ```powershell
@@ -256,7 +351,6 @@ The project uses `pytest` with FastAPI's `TestClient`:
 .venv/bin/pytest tests/ -v
 ```
 The same test suite runs automatically in CI (see [.github/workflows/docker-build.yml](.github/workflows/docker-build.yml)) before an image is built/published.
-The same test suite runs automatically in CI (see [`.github/workflows/docker-build.yml`](.github/workflows/docker-build.yml)) before an image is built/published.
 
 ## Contributing
 Contributions, bug reports and feature ideas are welcome — please open an issue or pull request. Before submitting a PR:
@@ -267,29 +361,125 @@ Contributions, bug reports and feature ideas are welcome — please open an issu
 ## License
 This project is licensed under the [MIT License](LICENSE).
 
+## Version 2 Roadmap
+
+### Prompt library: deletable entries and retroactive topic assignment
+
+* **Deletable entries** — individual entries in the extracted-prompt Markdown library (short description, type, prompt text, feedback section) can currently only be removed by hand-editing the Markdown file (see § 9). Version 2 should add a "Delete" action per entry in the prompt library UI, backed by a new endpoint that removes just that `---`-separated segment from the topic's Markdown file — reusing the same segment-based parsing as `read_library` so neighboring entries are never corrupted.
+* **Retroactive topic assignment** — today, changing the Topic field only affects *future* extractions; prompts already extracted during the current chat stay in whatever topic file was active at the time (see § 5). When the user sets/changes the Topic partway through an existing chat (i.e. prompts were already extracted under a different or empty topic), the UI should ask whether the prompts extracted so far in this chat should be moved to the newly chosen topic's Markdown file, or whether the new topic should only apply to prompts extracted from now on. Moving existing entries relocates the corresponding `---` segments from the old topic file into the new one; declining leaves already-extracted entries where they are.
+
+### Preset quality: reduce repetitive follow-up suggestions
+
+Several presets currently tend to end their answer with the same recurring list of "next steps"/follow-up ideas (e.g. always the same five bullet points), regardless of how the conversation actually developed. Version 2 should revise the affected preset system prompts to:
+
+* explicitly instruct the model to derive follow-up suggestions from the concrete conversation state (what was just discussed, what is still open) instead of falling back to a generic, memorized list;
+* explicitly forbid repeating a suggestion that was already made earlier in the same chat (the injected instruction can reference the existing conversation history for this);
+* vary the *number* of suggestions instead of always proposing a fixed count, and omit the suggestion list entirely once there is nothing meaningfully new to propose.
+
+This is a prompt-engineering fix in the bundled presets' `systemPrompt`s (and, where used, the `injectPromptTemplate` boilerplate in `chat_service.py`), not a new feature/endpoint — but it should be validated the same way as other preset changes: manual/subagent-simulated review across a multi-turn conversation per affected preset, checking that suggestions actually change and shrink/disappear as a topic is exhausted.
+
+### Interactive Prompt-Coach
+
+Version 2 should provide an optional, lightweight Prompt-Coach as a second conversation partner. This is deliberately separate from the existing chat and is not an autonomous agent workflow. The normal single-pass chat remains unchanged when the coach is unused.
+
+The Prompt-Coach receives the current user request and, when available, the latest assistant answer. It returns a visible coaching message that distinguishes between:
+
+* **Preserved requirements** — explicit user requirements that must remain unchanged;
+* **Clarifications** — ambiguities or missing details that can be resolved through questions;
+* **Suggestions** — optional creative additions that must not silently replace user intent;
+* **Optimized prompt** — a proposed revised prompt for the user to accept, edit, or reject.
+
+The user can respond to the coaching message in the normal chat, for example by accepting one suggestion, rejecting a creative addition, or asking for a different direction. The optimized prompt is not inserted into permanent chat history, autosave, or the prompt library until the user explicitly applies it. The coach must not invent fixed requirements, overwrite protected values, or present optional additions as user decisions.
+
+The first implementation should use one bounded additional LLM call with a structured response. It does not require autonomous tool-calling, freely planning subagents, or changes to the existing chat endpoint. Later versions may allow the coach to consult preset rules or the prompt library through narrowly scoped tools.
+
+Suggested response shape:
+
+```json
+{
+  "preserved_requirements": [],
+  "clarifications": [],
+  "suggestions": [],
+  "optimized_prompt": ""
+}
+```
+
+Acceptance criteria:
+
+* The existing chat behaves exactly as before when the Prompt-Coach is unused.
+* The coach is explicitly labeled as a separate conversation partner.
+* Fixed user requirements and protected values are preserved in the proposed prompt.
+* Optional creative additions are clearly labeled and never applied silently.
+* The user can accept, edit, or reject the proposed prompt before it affects chat context or persistence.
+* Coach failures are shown to the user and do not alter the existing conversation.
+
+### Multi-pass prompt refinement
+
+Version 2 should optionally process refinement presets as a controlled pipeline instead of producing the final answer in a single model call:
+
+1. **Analysis pass** — a dedicated analyst system prompt examines the original request and attached reference images. It identifies the input language, intended style and medium, mandatory details, protected values such as names or visible text, ambiguities, and useful areas for expansion. It must not write the final prompt.
+2. **Refinement pass** — a separate refiner system prompt receives the unchanged original request plus the structured analysis. It intensively expands the prompt while preserving its language, style, subject identity, explicit constraints, and requested output type.
+3. **Validation pass** — an independent validator agent receives the original request, analysis, and candidate answer. It checks the result against the criteria below and returns a structured verdict rather than rewriting the answer immediately.
+4. **Optional correction pass** — when validation fails, the refiner receives only the validator's concrete findings and produces one corrected answer. The pipeline validates that revision once more but performs no further automatic revisions, preventing loops and unbounded model usage.
+
+The analysis and validator use independent system prompts with narrowly defined responsibilities. They may use the same Ollama model as the refiner or separately configured models. Intermediate analysis is internal by default; debug mode may expose it for troubleshooting. Only the approved or final corrected answer is added to chat history and prompt libraries.
+
+### Validator agent
+
+The validator should return machine-readable output containing an `approved` boolean, a list of findings, and correction instructions. Each finding should identify a criterion, severity, and concise evidence from the candidate answer. Validation covers:
+
+* input language is preserved in the refined prompt;
+* requested artistic style and medium are preserved rather than replaced;
+* every explicit user requirement remains present and no requirement is contradicted;
+* names, quoted text, subject count, identity-defining traits, and other protected values remain unchanged;
+* additions are compatible with the original intent and unsupported brands, real people, locations, or text are not invented;
+* suggestions such as clothing, poses, environment, lighting, or composition are either compatible refinements or clearly marked as optional alternatives;
+* required `<prompt>` markup is complete and valid when prompt extraction is enabled;
+* the answer follows the requested response structure and contains a usable final prompt.
+
+The validator is advisory for ordinary chat presets and enforceable for multi-pass refinement presets. Infrastructure or parsing failures must be surfaced to the user; they must not silently mark an unchecked response as approved.
+
+### Proposed preset configuration
+
+The exact schema remains an implementation decision, but the intended configuration surface is:
+
+```json
+{
+  "multiPassRefinement": true,
+  "analysisSystemPrompt": "...",
+  "systemPrompt": "...",
+  "validationEnabled": true,
+  "validationSystemPrompt": "...",
+  "analysisModel": "qwen3:8b",
+  "validationModel": "qwen3:8b",
+  "maxRevisionAttempts": 1
+}
+```
+
+Existing presets remain single-pass unless `multiPassRefinement` is explicitly enabled. Missing analysis or validation models fall back to the preset's main model. Version 2 should expose the mode, prompts, models, and validation result in the preset editor without making the default single-pass workflow more complicated.
+
+### Streaming and user experience
+
+During a multi-pass request, the UI should show distinct status phases: `Analyzing`, `Refining`, `Validating`, and, when necessary, `Correcting`. The candidate answer should not stream into the permanent chat message before validation because a rejected draft would otherwise be visible and could be autosaved or extracted. The final answer may be streamed after approval, or displayed atomically when buffering is required by the validation flow.
+
+### Layout: independently scrollable prompt library
+
+The prompt history sidebar can be hidden from the chat toolbar; its visibility preference is retained by the browser. When visible, the sidebar stays within the viewport and its entries have a dedicated scrollbar, independent of the chat history scrollbar.
+
+### Acceptance criteria
+
+* Single-pass presets behave exactly as in version 1.
+* Multi-pass presets use separate analyst and refiner instructions and never replace the original request with the analysis.
+* Validation runs before chat persistence and Markdown prompt extraction.
+* A failed validation can trigger at most the configured number of correction attempts.
+* The final validation result is available to the frontend and stored with saved chat history for traceability.
+* Cancellation stops the active pass and prevents subsequent passes from starting.
+* Automated tests cover successful approval, correction after rejection, repeated rejection, malformed validator output, model/network failure, cancellation, and fallback model selection.
+* The chat history and the prompt library panel each scroll independently, with their own scrollbar and scroll position, regardless of content length in the other panel.
+
 ## Changelog
 
-### v1.2.0
-* Multiple images can now be attached to a single chat message (previously limited to one).
-* Images are attached via drag & drop only (the "Browse..." file picker was removed); each attached image shows as a thumbnail that can be removed individually before sending.
-* The preset editor panel is now collapsed by default on startup, and its header is styled to make expanding/collapsing it more discoverable.
-* Added the "Kreativ-Geschichten-Werkstatt" preset: an interactive co-writer that develops a story with the user turn by turn and derives standalone image/video/music prompt ideas from it after every passage.
-* The Topic field now offers existing topics (from prior prompt extractions) as autocomplete suggestions via a new `GET /api/prompts/topics` endpoint, instead of always starting from a blank field.
-* Hardened the Markdown prompt library parser (`read_library`) against manual edits: entries are now parsed per `---`-separated segment, so free-form notes, extra headings or code blocks added by hand between two entries no longer corrupt or swallow the following entry.
-* Clicking an attached image thumbnail in the chat history now opens it full-size in a lightbox overlay. Dropping image(s) now also works anywhere over the message input area, not just directly on the dropzone hint.
-* "Save history" now defaults to the name of the currently loaded/last-saved history, so pressing Enter/OK updates that same file instead of always requiring a new name — until "New chat" is clicked, which resets it back to asking for a fresh name.
-* Added a dark mode toggle in the header (persisted in the browser via `localStorage`, defaulting to the OS color-scheme preference).
-* Any chat message (user or assistant) can now be edited in place via a new "Edit" button. Editing a user message additionally offers "Save & Resend", which drops every message after it and asks the model for a fresh reply based on the edited text.
-
-### v1.1.0
-* Added `docker-compose.yml` to start the app together with an `ollama` container (with a named volume for pulled models).
-* Documented running the app via [`run.sh`](run.sh) on Linux/macOS.
-* Added Features, Running Tests, Contributing and License sections to the README.
-* "New chat" now also resets the "load history" dropdown, so it no longer keeps pointing at a chat that was just cleared.
-* Removed the "Prompt type" dropdown from the chat controls — it had no effect on the model or extraction; the extracted prompt type is decided by the model via the `<prompt type="...">` markup.
-
-### v1.0.0
-* Initial release: chat-based prompt workshop with presets, multimodal input, thinking mode, chat history management and Markdown prompt extraction.
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 # Core Requirements
 * easy to use

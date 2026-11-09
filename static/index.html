@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>AI Ollama Prompt Helper</title>
-  <link rel="stylesheet" href="/style.css?v=8">
+  <link rel="stylesheet" href="/style.css?v=20">
+  <link rel="stylesheet" href="/style.css?v=21">
 </head>
 <body>
   <header class="app-header">
@@ -43,7 +44,7 @@
           <label class="checkbox-label"><input type="checkbox" id="preset-thinking"> Thinking</label>
           <small class="field-hint">Ask the model to show its reasoning separately from the final answer (only works if the selected model supports it).</small>
           <label class="checkbox-label"><input type="checkbox" id="preset-injectPromptTemplate"> Inject prompt template</label>
-          <small class="field-hint">
+          <small class="field-hint" data-i18n-html="promptExtractionHint">
             Turns on automatic prompt extraction — you do <strong>not</strong> need to write any special markup in the System prompt yourself. When checked, the app automatically appends an instruction like this to your System prompt behind the scenes:<br>
             <code>Whenever you suggest a prompt for the user to reuse in another generative AI tool, wrap each suggestion in: &lt;prompt type="image" description="short description"&gt;prompt text&lt;/prompt&gt;</code><br>
             So your System prompt can stay focused on the actual task, e.g. <em>"You are a creative assistant that helps brainstorm and refine prompts for AI image generators."</em> — leave unchecked to disable extraction for this preset.
@@ -67,8 +68,10 @@
         <h2>Chat</h2>
         <div id="chat-controls" class="row">
           <button type="button" id="chat-deselect-all" class="btn btn--secondary">Deselect all</button>
+          <button type="button" id="chat-next-bookmark" class="btn btn--secondary" title="Jump to next bookmark" disabled>Next bookmark</button>
           <button type="button" id="chat-new" class="btn btn--secondary">New chat</button>
           <button type="button" id="chat-save" class="btn btn--secondary">Save history</button>
+          <button type="button" id="prompt-library-toggle" class="btn btn--secondary" aria-controls="prompt-library-section" aria-expanded="true">Hide prompt history</button>
           <select id="chat-history-select"><option value="">-- select saved chat --</option></select>
           <button type="button" id="chat-load" class="btn btn--secondary">Load</button>
           <span id="chat-context-indicator" class="pill"></span>
@@ -115,6 +118,32 @@
     <img id="image-lightbox-img" src="" alt="Full-size attached image">
   </div>
 
-  <script src="/app.js?v=18"></script>
+  <dialog id="chat-edit-dialog" class="chat-edit-dialog" aria-labelledby="chat-edit-title">
+    <div class="chat-edit-dialog__content">
+      <header class="chat-edit-dialog__header">
+        <h2 id="chat-edit-title">Edit message</h2>
+        <button type="button" id="chat-edit-close" class="chat-edit-dialog__close" aria-label="Close">&times;</button>
+      </header>
+      <label class="chat-edit-dialog__label" for="chat-edit-content">Message</label>
+      <textarea id="chat-edit-content" spellcheck="true"></textarea>
+      <section class="chat-edit-dialog__attachments" aria-labelledby="chat-edit-attachments-title">
+        <div class="chat-edit-dialog__attachments-header">
+          <h3 id="chat-edit-attachments-title">Images</h3>
+          <label class="btn btn--secondary chat-edit-file-button" for="chat-edit-add-images">
+            Add images
+            <input id="chat-edit-add-images" type="file" accept="image/*" multiple>
+          </label>
+        </div>
+        <div id="chat-edit-attachments"></div>
+      </section>
+      <footer class="chat-edit-dialog__actions">
+        <button type="button" id="chat-edit-cancel" class="btn btn--secondary">Cancel</button>
+        <button type="button" id="chat-edit-save-resend" class="btn btn--secondary">Save &amp; Resend</button>
+        <button type="button" id="chat-edit-save" class="btn btn--primary">Save</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <script src="/app.js?v=36"></script>
 </body>
 </html>

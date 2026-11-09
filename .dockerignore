@@ -8,7 +8,6 @@ __pycache__/
 tests/
 plan/
 .local/
-presets/
 output/
 config.local.json
 .vscode/

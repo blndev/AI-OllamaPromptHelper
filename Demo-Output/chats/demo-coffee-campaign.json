@@ -1,0 +1,54 @@
+{
+  "presetId": "prompt-refiner-universal",
+  "topic": "Demo Coffee Shops",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Ich plane eine dreiteilige Fruehlingskampagne fuer ein unabhaengiges Cafe. Die Marke soll ruhig, handwerklich und freundlich wirken. Bitte entwickle drei unterschiedliche Bildrichtungen fuer Social Media.",
+      "thinking": null,
+      "images": null,
+      "checked": true,
+      "bookmarked": false
+    },
+    {
+      "role": "assistant",
+      "content": "## Drei moegliche Richtungen\n\n1. **Morgenlicht am Fenster:** leise, persoenlich und warm.\n2. **Handwerk im Detail:** Bohnen, Keramik und Haende bei der Arbeit.\n3. **Cafe als Nachbarschaftsort:** einladend, lebendig und gemeinschaftlich.\n\nIch wuerde mit der ersten Richtung starten und die anderen beiden als Folgemotive nutzen.\n\n<prompt type=\"image\" description=\"Kaffee im Fruehlingsmorgenlicht\">Editorial photograph for an independent neighborhood cafe: a handmade ceramic cup of filter coffee beside a small plate of citrus cake on a pale oak table, soft spring morning light entering from a tall side window, delicate shadows from fresh green leaves, quiet lived-in atmosphere, natural muted colors, generous clean space in the upper left for optional campaign copy, realistic coffee crema and ceramic glaze, 50mm lens, restrained film grain, no logos, no visible text.</prompt>",
+      "thinking": "Die Anfrage braucht drei klar unterscheidbare Richtungen mit einer konkreten, direkt nutzbaren ersten Bildidee.",
+      "images": null,
+      "checked": true,
+      "bookmarked": true
+    },
+    {
+      "role": "user",
+      "content": "Die erste Richtung gefaellt mir. Kannst du daraus ein kurzes Hochformat-Video fuer einen Social-Post machen? Es soll ruhig bleiben und ohne sichtbare Markenlogos auskommen.",
+      "thinking": null,
+      "images": null,
+      "checked": true,
+      "bookmarked": false
+    },
+    {
+      "role": "assistant",
+      "content": "## Reel-Konzept, 8 Sekunden\n\n- **0–2 s:** Licht wandert ueber den Tisch.\n- **2–5 s:** Kaffee wird ruhig in die Keramiktasse gegossen.\n- **5–8 s:** Eine Hand stellt den Kuchen daneben; Schnitt auf die fertige Szene.\n\n<prompt type=\"video\" description=\"Ruhiger Kaffee-Morgen\">Vertical 9:16 cinematic cafe reel, 8 seconds, one continuous gentle sequence: soft spring sunlight moves across a pale oak table, a barista's hands pour filter coffee into a handmade ceramic cup, then place a small citrus cake beside it, subtle steam visible, shallow depth of field, natural warm color, calm camera push-in, authentic small cafe ambience, no logos, no readable text, no identifiable faces.</prompt>\n\n**Caption-Idee:** Ein guter Morgen beginnt mit Zeit fuer eine Tasse.",
+      "thinking": "Das Video soll denselben ruhigen Look fortsetzen und mit klaren, filmbaren Beats funktionieren.",
+      "images": null,
+      "checked": true,
+      "bookmarked": false
+    },
+    {
+      "role": "user",
+      "content": "Ergaenze bitte noch eine zweite Bildvariante mit einem Buch und vermeide, dass es zu inszeniert wirkt.",
+      "thinking": null,
+      "images": null,
+      "checked": true,
+      "bookmarked": false
+    },
+    {
+      "role": "assistant",
+      "content": "## Natuerliche Alternative\n\n<prompt type=\"image\" description=\"Lesepause im Cafe\">Candid editorial photograph in a small independent cafe: an open paperback resting beside a half-finished cappuccino on a slightly worn wooden table, a folded coat on the chair, soft overcast daylight from the window, a few natural crumbs and a faint coffee ring, relaxed unposed composition, warm but realistic color, shallow depth of field, subtle grain, no visible brand marks, no legible book title, no staged props.</prompt>\n\nDie kleinen Gebrauchsspuren machen das Motiv glaubwuerdiger und weniger nach Werbeset.",
+      "thinking": null,
+      "images": null,
+      "checked": true,
+      "bookmarked": false
+    }
+  ]
+}

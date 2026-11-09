@@ -1,0 +1,54 @@
+{
+  "presetId": "creative-story-image-video-music-workshop",
+  "topic": "Demo Coastal Escapes",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Ich entwickle eine kleine Reisekampagne fuer eine ruhige Kueste ausserhalb der Hauptsaison. Sie soll echte Orte, Wind und wechselhaftes Wetter zeigen, nicht wie eine Luxuswerbung wirken. Was koennte die visuelle Leitidee sein?",
+      "thinking": null,
+      "images": null,
+      "checked": true,
+      "bookmarked": false
+    },
+    {
+      "role": "assistant",
+      "content": "## Leitidee: Die Kueste gehoert dir fast allein\n\nStatt perfektem Sommerwetter zeigen wir die kleinen Momente zwischen den Sehenswuerdigkeiten: nasse Steine, ein offenes Cafe, ein Wegweiser im Wind und das erste Licht nach einem Schauer.\n\n<prompt type=\"image\" description=\"Leerer Kuestenweg nach dem Regen\">Documentary travel photograph of a narrow coastal path after a brief rain shower, dark wet stones in the foreground, pale grasses bent by the sea breeze, a small harbor village in the distance beneath clearing clouds, a single walker seen from behind for scale, natural overcast light with a thin strip of warm sun near the horizon, honest muted color, realistic weather, no resort styling, no logos, no text.</prompt>",
+      "thinking": "Die Leitidee sollte konkrete beobachtbare Details nennen und bewusst auf Hochglanz-Tourismusbilder verzichten.",
+      "images": null,
+      "checked": true,
+      "bookmarked": true
+    },
+    {
+      "role": "user",
+      "content": "Mach daraus ein 12-Sekunden-Video mit drei Einstellungen. Bitte ohne Drohnenaufnahme.",
+      "thinking": null,
+      "images": null,
+      "checked": true,
+      "bookmarked": false
+    },
+    {
+      "role": "assistant",
+      "content": "## Drei Einstellungen\n\n1. **Weg:** Kamera folgt auf Augenhoehe dem Kuestenpfad.\n2. **Pause:** Eine Tasse wird in einem kleinen Hafen-Cafe abgestellt.\n3. **Weite:** Die Person erreicht den Aussichtspunkt, waehrend die Wolken aufreissen.\n\n<prompt type=\"video\" description=\"Kueste nach dem Schauer\">12-second 16:9 documentary travel film, three grounded shots with natural transitions and no drone footage: a shoulder-height handheld follow along a wet coastal path with wind moving the grasses, a close detail of a steaming mug set on a cafe windowsill overlooking fishing boats, then a slow eye-level reveal as a lone walker reaches a modest lookout and a break in the clouds lets in soft late-afternoon light, realistic sea wind and distant gulls, understated color grade, no logos, no titles, no identifiable faces.</prompt>",
+      "thinking": "Drei Einstellungen sollen eine kleine Bewegung vom Weg ueber einen geschuetzten Ort zur offenen Aussicht bilden.",
+      "images": null,
+      "checked": true,
+      "bookmarked": false
+    },
+    {
+      "role": "user",
+      "content": "Gib mir zum Abschluss noch eine kurze Textidee fuer die Karte im Cafe und eine passende Bildvariante fuer den Hafen.",
+      "thinking": null,
+      "images": null,
+      "checked": true,
+      "bookmarked": false
+    },
+    {
+      "role": "assistant",
+      "content": "## Text fuer die Karte\n\n**Nach dem Wind schmeckt der Kaffee doppelt gut.**\n\n<prompt type=\"image\" description=\"Hafen im Seitenlicht\">Naturalistic travel editorial photograph of a small working harbor in the late afternoon, weathered wooden boats tied to a stone quay, coiled rope and rain-darkened planks in crisp foreground detail, low sun briefly illuminating the water between layered gray clouds, a compact cafe awning at the edge of frame, calm off-season mood, realistic coastal textures and restrained colors, no luxury yachts, no signage, no readable text.</prompt>",
+      "thinking": null,
+      "images": null,
+      "checked": true,
+      "bookmarked": false
+    }
+  ]
+}
