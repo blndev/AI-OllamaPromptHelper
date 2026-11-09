@@ -2,6 +2,75 @@
 // dropdown auto-discovered from /api/models (see README.md sections 4/5).
 console.log("AI Ollama Prompt Helper frontend loaded");
 
+const SUPPORTED_LANGUAGES = new Set(["en", "es", "de", "it", "fr"]);
+let currentLanguage = "en";
+let translations = { strings: {}, html: {} };
+
+function t(key, values = {}) {
+  let translated = translations.strings?.[key] ?? key;
+  return translated.replace(/\{(\w+)\}/g, (placeholder, name) =>
+    values[name] === undefined ? placeholder : String(values[name])
+  );
+}
+
+function applyStaticTranslations() {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.parentElement.closest("code, pre, [data-i18n-html], .markdown-content, .prompt-entry")) {
+      continue;
+    }
+    const source = node.nodeValue.trim();
+    const translated = t(source);
+    if (source && translated !== source) {
+      node.nodeValue = node.nodeValue.replace(source, translated);
+    }
+  }
+
+  document.querySelectorAll("[data-i18n-html]").forEach((element) => {
+    const key = element.dataset.i18nHtml;
+    if (translations.html?.[key]) {
+      element.innerHTML = translations.html[key];
+    }
+  });
+
+  for (const attribute of ["placeholder", "title", "aria-label", "alt"]) {
+    document.querySelectorAll(`[${attribute}]`).forEach((element) => {
+      const source = element.getAttribute(attribute);
+      const translated = t(source);
+      if (translated !== source) {
+        element.setAttribute(attribute, translated);
+      }
+    });
+  }
+}
+
+async function initializeI18n() {
+  const browserLanguage = (navigator.languages?.[0] ?? navigator.language ?? "en")
+    .split(/[-_]/)[0]
+    .toLowerCase();
+  currentLanguage = SUPPORTED_LANGUAGES.has(browserLanguage) ? browserLanguage : "en";
+
+  try {
+    let response = await fetch(`/i18n/${currentLanguage}.json`);
+    if (!response.ok && currentLanguage !== "en") {
+      currentLanguage = "en";
+      response = await fetch("/i18n/en.json");
+    }
+    if (response.ok) {
+      translations = await response.json();
+    }
+  } catch (error) {
+    currentLanguage = "en";
+    console.warn("Could not load translations; using English.", error);
+  }
+
+  document.documentElement.lang = currentLanguage;
+  applyStaticTranslations();
+}
+
+const i18nReady = initializeI18n();
+
 // --- Dark mode: persisted in localStorage, defaults to the OS preference ---
 const THEME_STORAGE_KEY = "theme";
 const themeToggleButton = document.getElementById("theme-toggle");
@@ -13,10 +82,10 @@ const PROMPT_LIBRARY_HIDDEN_STORAGE_KEY = "prompt-library-hidden";
 function applyTheme(theme) {
   if (theme === "dark") {
     document.documentElement.setAttribute("data-theme", "dark");
-    themeToggleButton.textContent = "☀️ Light mode";
+    themeToggleButton.textContent = t("☀️ Light mode");
   } else {
     document.documentElement.removeAttribute("data-theme");
-    themeToggleButton.textContent = "🌙 Dark mode";
+    themeToggleButton.textContent = t("🌙 Dark mode");
   }
 }
 
@@ -38,7 +107,7 @@ initTheme();
 function setPromptLibraryHidden(hidden) {
   promptLibrarySection.hidden = hidden;
   appLayout.classList.toggle("app-layout--library-hidden", hidden);
-  promptLibraryToggleButton.textContent = hidden ? "Show prompt history" : "Hide prompt history";
+  promptLibraryToggleButton.textContent = t(hidden ? "Show prompt history" : "Hide prompt history");
   promptLibraryToggleButton.setAttribute("aria-expanded", String(!hidden));
 }
 
@@ -69,12 +138,12 @@ const EXAMPLE_SYSTEM_PROMPT =
   "is vague, otherwise suggest 2-3 concrete prompt variations for the user's topic.";
 
 document.getElementById("preset-systemPrompt-example").addEventListener("click", () => {
-  fieldEl("systemPrompt").value = EXAMPLE_SYSTEM_PROMPT;
+  fieldEl("systemPrompt").value = t(EXAMPLE_SYSTEM_PROMPT);
   markUnsaved();
 });
 
 function setStatus(message, variant = null) {
-  presetStatus.textContent = message;
+  presetStatus.textContent = t(message);
   presetStatus.classList.toggle("status-text--error", variant === "error");
   presetStatus.classList.toggle("status-text--success", variant === "success");
   if (variant === "success") {
@@ -97,7 +166,7 @@ function fieldEl(name) {
 }
 
 function markUnsaved() {
-  setStatus('⚠ Unsaved changes — click "Save preset" to keep them.', "error");
+  setStatus(t('⚠ Unsaved changes — click "Save preset" to keep them.'), "error");
 }
 
 function fillForm(preset) {
@@ -121,7 +190,10 @@ function applyModelSelection() {
     // Saved model is gone from the Ollama instance: fall back to the first one.
     presetModel.selectedIndex = presetModel.options.length > 1 ? 1 : 0;
     setStatus(
-      `⚠ Model '${desiredModel}' is not available — switched to '${presetModel.value || "automatic"}'. Unsaved changes.`,
+      t("⚠ Model '{model}' is not available — switched to '{selectedModel}'. Unsaved changes.", {
+        model: desiredModel,
+        selectedModel: presetModel.value || "automatic",
+      }),
       "error"
     );
   }
@@ -134,7 +206,7 @@ async function loadModels() {
     if (!response.ok) {
       // fetch() resolves normally for HTTP error statuses, so a 502 from an
       // unreachable Ollama instance would otherwise pass silently unnoticed.
-      setStatus(`⚠ ${data.detail ?? "Could not reach the Ollama instance."}`, "error");
+      setStatus(t("⚠ {message}", { message: data.detail ?? t("⚠ Could not reach the Ollama instance.") }), "error");
       presetModel.innerHTML = "";
       return;
     }
@@ -142,7 +214,7 @@ async function loadModels() {
     // Empty value = save the preset without a fixed model.
     const noneOption = document.createElement("option");
     noneOption.value = "";
-    noneOption.textContent = "(no model — pick the first available one)";
+    noneOption.textContent = t("(no model — pick the first available one)");
     presetModel.appendChild(noneOption);
     for (const model of data.models ?? []) {
       const option = document.createElement("option");
@@ -152,7 +224,7 @@ async function loadModels() {
     }
     applyModelSelection();
   } catch (err) {
-    setStatus(`⚠ Could not load models: ${err}`, "error");
+    setStatus(t("⚠ Could not load models: {error}", { error: err }), "error");
   }
 }
 
@@ -229,12 +301,12 @@ presetForm.addEventListener("submit", async (event) => {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    setStatus(`⚠ ${error.detail ?? response.statusText}`, "error");
+    setStatus(t("⚠ {message}", { message: error.detail ?? response.statusText }), "error");
     return;
   }
 
   const saved = await response.json();
-  setStatus(`✅ Saved preset '${saved.name}'.`, "success");
+  setStatus(t("✅ Saved preset '{name}'.", { name: saved.name }), "success");
   await loadPresets(saved.id);
 });
 
@@ -245,10 +317,10 @@ document.getElementById("preset-delete").addEventListener("click", async () => {
   const response = await fetch(`/api/presets/${selectedId}`, { method: "DELETE" });
   if (!response.ok && response.status !== 204) {
     const error = await response.json().catch(() => ({}));
-    setStatus(`⚠ ${error.detail ?? response.statusText}`, "error");
+    setStatus(t("⚠ {message}", { message: error.detail ?? response.statusText }), "error");
     return;
   }
-  setStatus("Preset deleted.", "success");
+  setStatus(t("Preset deleted."), "success");
   selectedId = null;
   await loadPresets();
 });
@@ -304,6 +376,9 @@ async function loadTopicSuggestions() {
 }
 
 (async function init() {
+  await i18nReady;
+  initTheme();
+  setPromptLibraryHidden(localStorage.getItem(PROMPT_LIBRARY_HIDDEN_STORAGE_KEY) === "true");
   // Run in parallel: an unreachable Ollama instance can take several
   // seconds to time out, and must not block the preset list from loading.
   await Promise.all([loadModels(), loadPresets(), applyServerFeatureFlags(), loadTopicSuggestions()]);
@@ -382,12 +457,12 @@ document.addEventListener("keydown", (event) => {
 // Errors (e.g. "LLM unreachable") stay visible until the next successful
 // action, instead of being wiped out by the "" reset right after the call.
 function setChatError(message) {
-  chatStatus.textContent = `⚠ ${message}`;
+  chatStatus.textContent = `⚠ ${t(message)}`;
   chatStatus.classList.add("status-text--error");
 }
 
 function clearChatStatus(message = "") {
-  chatStatus.textContent = message;
+  chatStatus.textContent = t(message);
   chatStatus.classList.remove("status-text--error");
 }
 
@@ -405,14 +480,22 @@ let currentHistoryName = null;
 function updateContextIndicator() {
   const included = chatMessages.filter((m) => m.checked);
   const hasSelection = included.length > 0;
-  deselectAllButton.textContent = hasSelection ? "Deselect all" : "Select all";
+  deselectAllButton.textContent = t(hasSelection ? "Deselect all" : "Select all");
   deselectAllButton.disabled = chatMessages.length === 0;
   const budget = estimateContextBudget();
   const imageCount = included.reduce((sum, m) => sum + (m.images?.length ?? 0), 0);
-  const imageNote = imageCount > 0 ? ` (incl. ${imageCount} image${imageCount === 1 ? "" : "s"}, rough estimate)` : "";
+  const imageNote = imageCount > 0
+    ? ` ${t(imageCount === 1
+      ? "(incl. {count} image, rough estimate)"
+      : "(incl. {count} images, rough estimate)", { count: imageCount })}`
+    : "";
   contextIndicator.textContent =
-    `${included.length} msgs · ~${budget.usedTokens}/${budget.limit} tokens · ` +
-    `~${budget.reservedTokens} reserved for reply${imageNote}`;
+    t("{count} msgs · ~{used}/{limit} tokens · ~{reserved} reserved for reply", {
+      count: included.length,
+      used: budget.usedTokens,
+      limit: budget.limit,
+      reserved: budget.reservedTokens,
+    }) + (imageNote ? ` ${imageNote}` : "");
 }
 
 const IMAGE_TOKEN_ESTIMATE = 768;
@@ -655,7 +738,7 @@ function renderMessageText(message) {
   const content = message.content ?? "";
   const fragment = document.createDocumentFragment();
   const rolePrefix = document.createElement("span");
-  rolePrefix.textContent = `${message.role}: `;
+  rolePrefix.textContent = `${t(message.role)}: `;
   fragment.appendChild(rolePrefix);
 
   const promptTagPattern = /<prompt\s+([^>]*?)>([\s\S]*?)<\/prompt>/gi;
@@ -729,13 +812,13 @@ function renderChat() {
         message.thinkingManual = true;
       });
       const summary = document.createElement("summary");
-      summary.textContent = "Thinking";
+      summary.textContent = t("Thinking");
       const thinkingContent = document.createDocumentFragment();
       appendMarkdown(thinkingContent, message.thinking, "chat-thinking-text markdown-content");
       const editThinkingBtn = document.createElement("button");
       editThinkingBtn.type = "button";
       editThinkingBtn.className = "chat-thinking-edit";
-      editThinkingBtn.textContent = "Edit thinking";
+      editThinkingBtn.textContent = t("Edit thinking");
       editThinkingBtn.addEventListener("click", () => openMessageEditor(message, index, "thinking"));
       details.append(summary, thinkingContent);
       thinkingWrap.append(details, editThinkingBtn);
@@ -755,13 +838,13 @@ function renderChat() {
     if (message.failed) {
       const failedNote = document.createElement("span");
       failedNote.className = "chat-message-failed";
-      failedNote.textContent = "⚠ No response — the LLM request failed. See status below.";
+      failedNote.textContent = t("⚠ No response — the LLM request failed. See status below.");
       row.append(failedNote);
     }
 
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
-    deleteBtn.textContent = "Delete";
+    deleteBtn.textContent = t("Delete");
     deleteBtn.addEventListener("click", () => deleteMessage(index));
 
     const body = renderMessageText(message);
@@ -772,10 +855,10 @@ function renderChat() {
       copyBtn.type = "button";
       copyBtn.className = "chat-message-copy";
       copyBtn.textContent = message.copyStatus === "copied"
-        ? "Copied!"
+        ? t("Copied!")
         : message.copyStatus === "failed"
-          ? "Copy failed"
-          : "Copy answer";
+          ? t("Copy failed")
+          : t("Copy answer");
       copyBtn.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(message.content);
@@ -784,14 +867,14 @@ function renderChat() {
           message.copyStatus = "failed";
         }
         const copyStatus = message.copyStatus;
-        copyBtn.textContent = copyStatus === "copied" ? "Copied!" : "Copy failed";
+        copyBtn.textContent = t(copyStatus === "copied" ? "Copied!" : "Copy failed");
         setTimeout(() => {
           if (message.copyStatus === copyStatus) {
             message.copyStatus = "";
             const messageIndex = chatMessages.indexOf(message);
             const currentCopyBtn = chatHistoryEl.children[messageIndex]?.querySelector(".chat-message-copy");
             if (currentCopyBtn) {
-              currentCopyBtn.textContent = "Copy answer";
+              currentCopyBtn.textContent = t("Copy answer");
             }
           }
         }, 1500);
@@ -801,14 +884,14 @@ function renderChat() {
 
     const editBtn = document.createElement("button");
     editBtn.type = "button";
-    editBtn.textContent = "Edit";
+    editBtn.textContent = t("Edit");
     editBtn.addEventListener("click", () => openMessageEditor(message, index));
     row.append(editBtn);
 
     if (message.role === "assistant") {
       const deselectAboveBtn = document.createElement("button");
       deselectAboveBtn.type = "button";
-      deselectAboveBtn.textContent = "Deselect all above";
+      deselectAboveBtn.textContent = t("Deselect all above");
       deselectAboveBtn.disabled = !chatMessages
         .slice(0, index)
         .some((previousMessage) => previousMessage.checked);
@@ -824,7 +907,9 @@ function renderChat() {
 
     const bookmarkBtn = document.createElement("button");
     bookmarkBtn.type = "button";
-    bookmarkBtn.textContent = message.bookmarked ? "★ Bookmarked" : "☆ Bookmark";
+    bookmarkBtn.textContent = message.bookmarked
+      ? `★ ${t("Bookmarked")}`
+      : `☆ ${t("Bookmark")}`;
     bookmarkBtn.setAttribute("aria-pressed", String(Boolean(message.bookmarked)));
     bookmarkBtn.addEventListener("click", () => {
       message.bookmarked = !message.bookmarked;
@@ -836,7 +921,7 @@ function renderChat() {
     if (message.role === "assistant" && index === chatMessages.length - 1) {
       const regenBtn = document.createElement("button");
       regenBtn.type = "button";
-      regenBtn.textContent = "Regenerate";
+      regenBtn.textContent = t("Regenerate");
       regenBtn.addEventListener("click", regenerateLast);
       row.append(regenBtn);
     }
@@ -895,7 +980,7 @@ function renderEditorAttachments() {
 
     const replaceLabel = document.createElement("label");
     replaceLabel.className = "btn btn--secondary chat-edit-file-button";
-    replaceLabel.textContent = "Replace";
+    replaceLabel.textContent = t("Replace");
     const replaceInput = document.createElement("input");
     replaceInput.type = "file";
     replaceInput.accept = "image/*";
@@ -909,7 +994,7 @@ function renderEditorAttachments() {
         editingImages[index] = { name: file.name, base64, dataUrl: `data:${file.type};base64,${base64}` };
         renderEditorAttachments();
       } catch (error) {
-        setChatError(`Could not read image: ${error}`);
+        setChatError(t("Could not read image: {error}", { error }));
       }
     });
     replaceLabel.appendChild(replaceInput);
@@ -917,7 +1002,7 @@ function renderEditorAttachments() {
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.className = "btn btn--danger";
-    removeButton.textContent = "Remove";
+    removeButton.textContent = t("Remove");
     removeButton.addEventListener("click", () => {
       editingImages.splice(index, 1);
       renderEditorAttachments();
@@ -937,13 +1022,13 @@ function openMessageEditor(message, index, field = "content") {
     const match = /^data:([^;,]+);base64,(.+)$/.exec(dataUrl);
     return { name: `Image ${imageIndex + 1}`, base64: match?.[2] ?? "", dataUrl };
   });
-  chatEditTitle.textContent = isThinking
+  chatEditTitle.textContent = t(isThinking
     ? "Edit thinking response"
-    : message.role === "assistant" ? "Edit assistant response" : "Edit user message";
-  chatEditLabel.textContent = isThinking ? "Thinking response" : "Message";
+    : message.role === "assistant" ? "Edit assistant response" : "Edit user message");
+  chatEditLabel.textContent = t(isThinking ? "Thinking response" : "Message");
   chatEditAttachmentSection.hidden = isThinking;
   chatEditSaveResend.hidden = isThinking || message.role !== "user";
-  chatEditSave.textContent = isThinking ? "Save thinking" : "Save";
+  chatEditSave.textContent = t(isThinking ? "Save thinking" : "Save");
   renderEditorAttachments();
   chatEditDialog.showModal();
   chatEditContent.focus();
@@ -958,7 +1043,7 @@ chatEditAddImages.addEventListener("change", async () => {
     }
     renderEditorAttachments();
   } catch (error) {
-    setChatError(`Could not read image: ${error}`);
+    setChatError(t("Could not read image: {error}", { error }));
   }
   chatEditAddImages.value = "";
 });
@@ -973,8 +1058,8 @@ chatEditDialog.addEventListener("close", () => {
   chatEditContent.value = "";
   chatEditAttachments.innerHTML = "";
   chatEditAttachmentSection.hidden = false;
-  chatEditLabel.textContent = "Message";
-  chatEditSave.textContent = "Save";
+  chatEditLabel.textContent = t("Message");
+  chatEditSave.textContent = t("Save");
 });
 
 function commitMessageEdit(resend) {
@@ -1097,8 +1182,10 @@ async function streamAssistantReply(historyForContext) {
     renderChat();
     triggerAutosave();
     clearChatStatus(
-      `Context budget: deselected ${budget.deselectedCount} oldest messages; ` +
-      `reserved about ${budget.reservedTokens} tokens for the reply.`
+      t("Context budget: deselected {count} oldest messages; reserved about {tokens} tokens for the reply.", {
+        count: budget.deselectedCount,
+        tokens: budget.reservedTokens,
+      })
     );
   }
   historyForContext = chatMessages.filter((message) => message.checked);
@@ -1244,17 +1331,17 @@ function renderPromptEntry(entry) {
 
   const copyBtn = document.createElement("button");
   copyBtn.type = "button";
-  copyBtn.textContent = "Copy";
+  copyBtn.textContent = t("Copy");
   copyBtn.addEventListener("click", async () => {
     const originalLabel = copyBtn.textContent;
     // Visual feedback that the copy actually happened (or failed), since
     // clipboard writes are otherwise silent/invisible to the user.
     try {
       await navigator.clipboard.writeText(entry.prompt);
-      copyBtn.textContent = "✅ Copied!";
+      copyBtn.textContent = t("✅ Copied!");
       copyBtn.classList.add("btn--copied");
     } catch (err) {
-      copyBtn.textContent = "⚠ Copy failed";
+      copyBtn.textContent = t("⚠ Copy failed");
       copyBtn.classList.add("btn--copy-failed");
     }
     setTimeout(() => {
@@ -1286,7 +1373,7 @@ async function extractPrompts(assistantMessage) {
       await loadTopicSuggestions();
     }
   } catch (err) {
-    chatStatus.textContent = `Prompt extraction failed: ${err}`;
+    chatStatus.textContent = t("Prompt extraction failed: {error}", { error: err });
   }
 }
 
@@ -1306,7 +1393,7 @@ async function loadPromptLibrary() {
       promptLibraryEl.appendChild(renderPromptEntry(entry));
     }
   } catch (err) {
-    chatStatus.textContent = `Could not load topic prompt history: ${err}`;
+    chatStatus.textContent = t("Could not load topic prompt history: {error}", { error: err });
   }
 }
 
@@ -1343,7 +1430,7 @@ function renderSelectedImages() {
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.textContent = "✕";
-    removeBtn.title = `Remove ${image.name}`;
+    removeBtn.title = t("Remove {name}", { name: image.name });
     removeBtn.addEventListener("click", () => {
       selectedImages.splice(index, 1);
       renderSelectedImages();
@@ -1356,7 +1443,7 @@ function renderSelectedImages() {
 async function addImageFiles(files) {
   const imageFiles = [...files].filter((f) => f.type.startsWith("image/"));
   if (imageFiles.length === 0) {
-    setChatError("Only image files can be attached here.");
+    setChatError(t("Only image files can be attached here."));
     return;
   }
   for (const file of imageFiles) {
@@ -1404,7 +1491,7 @@ chatForm.addEventListener("paste", (event) => {
 chatForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!selectedId) {
-    setChatError("Select a preset first.");
+    setChatError(t("Select a preset first."));
     return;
   }
   const text = chatInput.value;
@@ -1502,7 +1589,9 @@ function updateAutosaveStatusText() {
     return;
   }
   const seconds = Math.round((Date.now() - lastAutosaveAt.getTime()) / 1000);
-  chatAutosaveStatus.textContent = seconds < 5 ? "Autosaved just now" : `Autosaved ${seconds}s ago`;
+  chatAutosaveStatus.textContent = seconds < 5
+    ? t("Autosaved just now")
+    : t("Autosaved {seconds}s ago", { seconds });
 }
 
 setInterval(triggerAutosave, 30000);
@@ -1516,7 +1605,7 @@ async function loadHistoryNames() {
     chatHistorySelect.innerHTML = "";
     const placeholder = document.createElement("option");
     placeholder.value = "";
-    placeholder.textContent = "-- select saved chat --";
+    placeholder.textContent = t("-- select saved chat --");
     chatHistorySelect.appendChild(placeholder);
     for (const name of data.names ?? []) {
       const option = document.createElement("option");
@@ -1526,14 +1615,13 @@ async function loadHistoryNames() {
     }
     chatHistorySelect.value = previouslySelected;
   } catch (err) {
-    chatStatus.textContent = `Could not load chat history list: ${err}`;
+    chatStatus.textContent = t("Could not load chat history list: {error}", { error: err });
   }
 }
 
 chatNewButton.addEventListener("click", async () => {
   const confirmed = window.confirm(
-    "Start a new chat? The current conversation and its attachments will be cleared. " +
-    "Saved chat histories will not be deleted."
+    t("Start a new chat? The current conversation and its attachments will be cleared. Saved chat histories will not be deleted.")
   );
   if (!confirmed) {
     return;
@@ -1556,7 +1644,7 @@ chatNewButton.addEventListener("click", async () => {
 });
 
 chatSaveButton.addEventListener("click", async () => {
-  const name = window.prompt("Save chat history as:", currentHistoryName ?? "");
+  const name = window.prompt(t("Save chat history as:"), currentHistoryName ?? "");
   if (!name) {
     return;
   }
@@ -1568,15 +1656,15 @@ chatSaveButton.addEventListener("click", async () => {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      chatStatus.textContent = `Error: ${error.detail ?? response.statusText}`;
+      chatStatus.textContent = t("Error: {message}", { message: error.detail ?? response.statusText });
       return;
     }
     const saved = await response.json();
     currentHistoryName = saved.name;
-    chatStatus.textContent = `Saved chat history as '${saved.name}'.`;
+    chatStatus.textContent = t("Saved chat history as '{name}'.", { name: saved.name });
     await loadHistoryNames();
   } catch (err) {
-    chatStatus.textContent = `Save failed: ${err}`;
+    chatStatus.textContent = t("Save failed: {error}", { error: err });
   }
 });
 
@@ -1589,20 +1677,24 @@ chatLoadButton.addEventListener("click", async () => {
     const response = await fetch(`/api/chat-history/load?name=${encodeURIComponent(name)}`);
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      chatStatus.textContent = `Error: ${error.detail ?? response.statusText}`;
+      chatStatus.textContent = t("Error: {message}", { message: error.detail ?? response.statusText });
       return;
     }
     const history = await response.json();
     applyHistory(history);
     currentHistoryName = name;
     await loadPromptLibrary();
-    chatStatus.textContent = `Loaded '${name}' (${history.messages?.length ?? 0} messages).`;
+    chatStatus.textContent = t("Loaded '{name}' ({count} messages).", {
+      name,
+      count: history.messages?.length ?? 0,
+    });
   } catch (err) {
-    chatStatus.textContent = `Load failed: ${err}`;
+    chatStatus.textContent = t("Load failed: {error}", { error: err });
   }
 });
 
 (async function restoreAutosaveOnLoad() {
+  await i18nReady;
   // No login/session concept in this app, so the autosaved chat (if any) is
   // restored automatically rather than prompting the user.
   await loadHistoryNames();

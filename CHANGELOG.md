@@ -1,5 +1,8 @@
 # Changelog
 
+### v1.9.0
+* The interface now follows the browser language for English, Spanish, German, Italian or French, with English as the fallback. Translations are stored in separate JSON files.
+
 ### v1.8.0
 * Added a chat-toolbar button that jumps to the next bookmarked message and wraps back to the first bookmark.
 * Assistant messages can now deselect all earlier messages from the context.

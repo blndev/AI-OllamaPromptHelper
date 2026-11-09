@@ -43,7 +43,7 @@
           <label class="checkbox-label"><input type="checkbox" id="preset-thinking"> Thinking</label>
           <small class="field-hint">Ask the model to show its reasoning separately from the final answer (only works if the selected model supports it).</small>
           <label class="checkbox-label"><input type="checkbox" id="preset-injectPromptTemplate"> Inject prompt template</label>
-          <small class="field-hint">
+          <small class="field-hint" data-i18n-html="promptExtractionHint">
             Turns on automatic prompt extraction — you do <strong>not</strong> need to write any special markup in the System prompt yourself. When checked, the app automatically appends an instruction like this to your System prompt behind the scenes:<br>
             <code>Whenever you suggest a prompt for the user to reuse in another generative AI tool, wrap each suggestion in: &lt;prompt type="image" description="short description"&gt;prompt text&lt;/prompt&gt;</code><br>
             So your System prompt can stay focused on the actual task, e.g. <em>"You are a creative assistant that helps brainstorm and refine prompts for AI image generators."</em> — leave unchecked to disable extraction for this preset.
@@ -143,6 +143,6 @@
     </div>
   </dialog>
 
-  <script src="/app.js?v=32"></script>
+  <script src="/app.js?v=35"></script>
 </body>
 </html>
