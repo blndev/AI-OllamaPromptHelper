@@ -907,9 +907,14 @@ function renderChat() {
 
     const bookmarkBtn = document.createElement("button");
     bookmarkBtn.type = "button";
-    bookmarkBtn.textContent = message.bookmarked
-      ? `★ ${t("Bookmarked")}`
-      : `☆ ${t("Bookmark")}`;
+    bookmarkBtn.className = "chat-message-bookmark";
+    const bookmarkIcon = document.createElement("span");
+    bookmarkIcon.className = "chat-message-bookmark__icon";
+    bookmarkIcon.setAttribute("aria-hidden", "true");
+    bookmarkIcon.textContent = message.bookmarked ? "★" : "☆";
+    const bookmarkLabel = document.createElement("span");
+    bookmarkLabel.textContent = t(message.bookmarked ? "Bookmarked" : "Bookmark");
+    bookmarkBtn.append(bookmarkIcon, bookmarkLabel);
     bookmarkBtn.setAttribute("aria-pressed", String(Boolean(message.bookmarked)));
     bookmarkBtn.addEventListener("click", () => {
       message.bookmarked = !message.bookmarked;

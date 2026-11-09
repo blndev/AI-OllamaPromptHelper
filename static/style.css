@@ -641,6 +641,23 @@ textarea {
   font-size: 0.8rem;
 }
 
+.chat-message button.chat-message-bookmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.chat-message-bookmark__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  line-height: 1;
+}
+
 .chat-edit-dialog {
   width: min(820px, calc(100vw - 2rem));
   max-width: none;
