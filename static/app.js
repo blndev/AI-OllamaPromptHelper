@@ -404,6 +404,9 @@ let currentHistoryName = null;
 
 function updateContextIndicator() {
   const included = chatMessages.filter((m) => m.checked);
+  const hasSelection = included.length > 0;
+  deselectAllButton.textContent = hasSelection ? "Deselect all" : "Select all";
+  deselectAllButton.disabled = chatMessages.length === 0;
   const budget = estimateContextBudget();
   const imageCount = included.reduce((sum, m) => sum + (m.images?.length ?? 0), 0);
   const imageNote = imageCount > 0 ? ` (incl. ${imageCount} image${imageCount === 1 ? "" : "s"}, rough estimate)` : "";
@@ -705,6 +708,7 @@ function renderChat() {
     checkbox.addEventListener("change", () => {
       message.checked = checkbox.checked;
       updateContextIndicator();
+      triggerAutosave();
     });
 
     row.append(checkbox);
@@ -1079,7 +1083,11 @@ undoButton.addEventListener("click", () => {
 });
 
 deselectAllButton.addEventListener("click", () => {
-  chatMessages.forEach((m) => (m.checked = false));
+  const shouldSelectAll = !chatMessages.some((message) => message.checked);
+  chatMessages.forEach((message) => {
+    message.checked = shouldSelectAll;
+  });
+  triggerAutosave();
   renderChat();
 });
 
