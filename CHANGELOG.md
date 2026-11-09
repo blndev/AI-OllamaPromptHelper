@@ -2,6 +2,8 @@
 
 ### v1.8.0
 * Added a chat-toolbar button that jumps to the next bookmarked message and wraps back to the first bookmark.
+* Assistant messages can now deselect all earlier messages from the context.
+* Starting a new chat now asks for confirmation, clears the active conversation and composer, and saves the empty chat state without deleting named histories.
 
 ### v1.7.0
 * Before generating a reply, the app automatically deselects the oldest messages when the estimated context exceeds `num_ctx` minus an output reserve of 110% of the average size of the latest three assistant answers. The newest checked user message is retained.

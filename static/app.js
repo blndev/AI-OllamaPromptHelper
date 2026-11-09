@@ -801,6 +801,23 @@ function renderChat() {
     editBtn.addEventListener("click", () => openMessageEditor(message, index));
     row.append(editBtn);
 
+    if (message.role === "assistant") {
+      const deselectAboveBtn = document.createElement("button");
+      deselectAboveBtn.type = "button";
+      deselectAboveBtn.textContent = "Deselect all above";
+      deselectAboveBtn.disabled = !chatMessages
+        .slice(0, index)
+        .some((previousMessage) => previousMessage.checked);
+      deselectAboveBtn.addEventListener("click", () => {
+        chatMessages.slice(0, index).forEach((previousMessage) => {
+          previousMessage.checked = false;
+        });
+        triggerAutosave();
+        renderChat();
+      });
+      row.append(deselectAboveBtn);
+    }
+
     const bookmarkBtn = document.createElement("button");
     bookmarkBtn.type = "button";
     bookmarkBtn.textContent = message.bookmarked ? "★ Bookmarked" : "☆ Bookmark";
@@ -1453,8 +1470,8 @@ function applyHistory(history) {
   renderChat();
 }
 
-async function triggerAutosave() {
-  if (chatMessages.length === 0) {
+async function triggerAutosave(allowEmpty = false) {
+  if (chatMessages.length === 0 && !allowEmpty) {
     return;
   }
   try {
@@ -1505,9 +1522,20 @@ async function loadHistoryNames() {
   }
 }
 
-chatNewButton.addEventListener("click", () => {
+chatNewButton.addEventListener("click", async () => {
+  const confirmed = window.confirm(
+    "Start a new chat? The current conversation and its attachments will be cleared. " +
+    "Saved chat histories will not be deleted."
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  activeStreamController?.abort();
   // Keep the currently selected preset — only the conversation is cleared.
   chatMessages = [];
+  chatInput.value = "";
+  resetImageSelection();
   topicInput.value = "";
   promptLibraryEl.innerHTML = "";
   // Clear the load-history selection too, otherwise it still points at the
@@ -1516,6 +1544,7 @@ chatNewButton.addEventListener("click", () => {
   // A fresh conversation is no longer tied to the previously loaded save.
   currentHistoryName = null;
   renderChat();
+  await triggerAutosave(true);
 });
 
 chatSaveButton.addEventListener("click", async () => {
